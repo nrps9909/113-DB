@@ -8,6 +8,7 @@
 # HW1 User Registration and Login System
 
 [link](https://youtu.be/LT-PYBJTzqM)
+
 This project is a basic user registration and login system built using **Flask** as the web framework and **MySQL** as the database. The system allows users to register, log in, and access a dashboard. The passwords are securely hashed using the `pbkdf2:sha256` method, and the system ensures no duplicate usernames or emails are allowed.
 
 ## Features
