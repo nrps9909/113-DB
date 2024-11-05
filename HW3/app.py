@@ -14,7 +14,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')  # 從環境變數中讀取密鑰
 
 # 從環境變數中獲取 MongoDB Atlas 的 URI
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = os.getenv("MONGODB_URI")
 client = MongoClient(MONGO_URI)
 
 # 指定要使用的資料庫和集合
