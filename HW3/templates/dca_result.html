@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DCA Investment Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Additional styling for centering */
+        #investmentChartContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">Bitcoin Information Platform</a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <!-- Centered Chart Container -->
+        <div id="investmentChartContainer" class="row justify-content-center">
+            <div class="col-12 text-center">
+                <canvas id="investmentChart" style="max-width: 900px; height: 500px;"></canvas>
+            </div>
+        </div>
+        
+        <!-- Investment result text below the chart -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-12 result-container text-center">
+                <h2>Investment Results</h2>
+                <div class="result-item">Total Invested: ${{ total_invested }}</div>
+                <div class="result-item">Total Value Now: ${{ total_value }}</div>
+                <div class="result-item">Return on Investment: {{ roi_percentage }}%</div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{{ url_for('dca') }}" class="btn btn-secondary">Back to Calculator</a>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('investmentChart').getContext('2d');
+        const investmentDates = {{ investment_dates | tojson | safe }};
+        const investmentValues = {{ investment_values | tojson | safe }};
+        const investedAmounts = investmentDates.map((_, i) => (i + 1) * {{ amount }});
+
+        if (investmentDates.length === 0 || investmentValues.length === 0) {
+            alert("No investment data available to display the chart.");
+        } else {
+            const investmentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: investmentDates,
+                    datasets: [
+                        {
+                            label: 'Total Invested',
+                            data: investedAmounts,
+                            borderColor: '#ff0000',
+                            backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Portfolio Value',
+                            data: investmentValues,
+                            borderColor: '#00ff00',
+                            backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: { display: true, text: 'Date', color: '#e0e0e0' },
+                            ticks: { color: '#e0e0e0' }
+                        },
+                        y: {
+                            display: true,
+                            title: { display: true, text: 'Value (USD)', color: '#e0e0e0' },
+                            ticks: { color: '#e0e0e0' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e0e0e0', font: { family: 'Orbitron' } }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Investment Results Chart',
+                            color: '#00ff00',
+                            font: {
+                                size: 18,
+                                family: 'Orbitron'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
