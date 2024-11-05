@@ -41,7 +41,7 @@ function fetchBitcoinPrice() {
 fetchBitcoinPrice();
 
 // 每秒更新价格
-setInterval(fetchBitcoinPrice, 1000);
+setInterval(fetchBitcoinPrice, 10000);
 
 // 初始化 K 线图
 const ctx = document.getElementById('klineChart').getContext('2d');
