@@ -4,14 +4,22 @@ from bson.objectid import ObjectId
 import requests
 import traceback
 import datetime
+import os
+from dotenv import load_dotenv
+
+# 加載環境變數
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # 設定一個密鑰以使用 session
+app.secret_key = os.getenv('SECRET_KEY')  # 從環境變數中讀取密鑰
 
-# MongoDB 配置
-client = MongoClient("mongodb://localhost:27017/")
-db = client.local
-collection = db.startup_log
+# 從環境變數中獲取 MongoDB Atlas 的 URI
+MONGO_URI = os.getenv("MONGO_URI")
+client = MongoClient(MONGO_URI)
+
+# 指定要使用的資料庫和集合
+db = client['my_database']  # 替換成你的資料庫名稱
+collection = db['startup_log']  # 替換成你要使用的集合名稱
 
 # Binance API URL
 BASE_URL = 'https://data-api.binance.vision'
@@ -48,6 +56,7 @@ def create():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         if name and description:
+            # 安全地插入資料
             collection.insert_one({'name': name, 'description': description})
             return redirect(url_for('index'))
         else:
@@ -65,6 +74,7 @@ def edit(log_id):
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         if name and description:
+            # 安全地更新資料
             collection.update_one({'_id': ObjectId(log_id)}, {'$set': {'name': name, 'description': description}})
             return redirect(url_for('index'))
         else:
@@ -128,10 +138,6 @@ def dca():
         total_invested, total_value, roi_percentage, investment_dates, investment_values = calculate_dca(
             start_date_str, end_date_str, interval, amount
         )
-
-        # 設置默認值以防止 `None` 傳遞給模板
-        investment_dates = investment_dates if investment_dates else []
-        investment_values = investment_values if investment_values else []
 
         return render_template('dca_result.html',
                                start_date=start_date_str,
@@ -310,3 +316,4 @@ def bitcoin_price_api():
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
+    
