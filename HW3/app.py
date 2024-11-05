@@ -315,4 +315,6 @@ def bitcoin_price_api():
     return jsonify({'price': price})
 
 if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False)
+    port = int(os.environ.get('PORT', 5000))  # 使用 Heroku 提供的端口
+    app.run(host='0.0.0.0', port=port)  # 在所有可用的 IP 上運行
+
