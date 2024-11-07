@@ -1,6 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import requests
 import traceback
 import datetime
@@ -13,16 +15,73 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')  # 從環境變數中讀取密鑰
 
-# 從環境變數中獲取 MongoDB Atlas 的 URI
+# 設置加密和登入管理
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+# MongoDB 連線
 MONGO_URI = os.getenv("MONGODB_URI")
 client = MongoClient(MONGO_URI)
-
-# 指定要使用的資料庫和集合
 db = client['my_database']  # 替換成你的資料庫名稱
-collection = db['startup_log']  # 替換成你要使用的集合名稱
+users_collection = db['users']  # 使用者資料的集合
+logs_collection = db['startup_log']  # 留言資料的集合
 
 # Binance API URL
 BASE_URL = 'https://data-api.binance.vision'
+
+class User(UserMixin):
+    def __init__(self, user_id, username):
+        self.id = user_id
+        self.username = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    user_data = users_collection.find_one({"_id": ObjectId(user_id)})
+    if user_data:
+        return User(user_id=str(user_data['_id']), username=user_data['username'])
+    return None
+
+# 註冊頁面
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
+        
+        if users_collection.find_one({'username': username}):
+            flash("Username already exists!")
+            return redirect(url_for('register'))
+        
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        user_id = users_collection.insert_one({'username': username, 'password': hashed_password}).inserted_id
+        login_user(User(user_id=str(user_id), username=username))
+        return redirect(url_for('index'))
+    
+    return render_template('register.html')
+
+# 登入頁面
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
+        
+        user_data = users_collection.find_one({'username': username})
+        if user_data and bcrypt.check_password_hash(user_data['password'], password):
+            user = User(user_id=str(user_data['_id']), username=username)
+            login_user(user)
+            return redirect(url_for('index'))
+        
+        flash("Invalid username or password.")
+    return render_template('login.html')
+
+# 登出
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 def get_bitcoin_price():
     """获取实时比特币价格"""
@@ -45,56 +104,68 @@ def get_bitcoin_price():
 @app.route('/')
 def index():
     """主页，显示所有日志和实时比特币价格"""
-    logs = collection.find()
+    logs = logs_collection.find()
     bitcoin_price = get_bitcoin_price()
     return render_template('index.html', logs=logs, bitcoin_price=bitcoin_price)
 
+# 创建新日志（僅限登入用戶）
 @app.route('/create', methods=['GET', 'POST'])
+@login_required
 def create():
-    """创建新日志"""
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         if name and description:
-            # 安全地插入資料
-            collection.insert_one({'name': name, 'description': description})
+            logs_collection.insert_one({
+                'name': name,
+                'description': description,
+                'user_id': current_user.id  # 保存當前登入使用者的ID
+            })
             return redirect(url_for('index'))
         else:
             error = "Name and Description are required."
             return render_template('create.html', error=error)
     return render_template('create.html')
 
+# 编辑日志（仅限拥有该日志的用户）
 @app.route('/edit/<log_id>', methods=['GET', 'POST'])
+@login_required
 def edit(log_id):
-    """编辑日志"""
-    log = collection.find_one({'_id': ObjectId(log_id)})
-    if not log:
-        return "Log not found", 404
+    log = logs_collection.find_one({'_id': ObjectId(log_id)})
+    if not log or log['user_id'] != current_user.id:
+        flash("You do not have permission to edit this log.")
+        return redirect(url_for('index'))
+
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         if name and description:
-            # 安全地更新資料
-            collection.update_one({'_id': ObjectId(log_id)}, {'$set': {'name': name, 'description': description}})
+            logs_collection.update_one(
+                {'_id': ObjectId(log_id)},
+                {'$set': {'name': name, 'description': description}}
+            )
             return redirect(url_for('index'))
         else:
             error = "Name and Description are required."
             return render_template('edit.html', log=log, error=error)
     return render_template('edit.html', log=log)
 
+# 删除日志（仅限拥有该日志的用户）
 @app.route('/delete/<log_id>', methods=['POST'])
+@login_required
 def delete(log_id):
-    """删除日志"""
-    result = collection.delete_one({'_id': ObjectId(log_id)})
-    if result.deleted_count == 1:
+    log = logs_collection.find_one({'_id': ObjectId(log_id)})
+    if not log or log['user_id'] != current_user.id:
+        flash("You do not have permission to delete this log.")
         return redirect(url_for('index'))
-    else:
-        return "Log not found", 404
+
+    logs_collection.delete_one({'_id': ObjectId(log_id)})
+    return redirect(url_for('index'))
 
 @app.route('/detail/<log_id>')
 def detail(log_id):
     """显示日志详情"""
-    log = collection.find_one({'_id': ObjectId(log_id)})
+    log = logs_collection.find_one({'_id': ObjectId(log_id)})
     if not log:
         return "Log not found", 404
     return render_template('detail.html', log=log)
@@ -103,12 +174,10 @@ def detail(log_id):
 def dca():
     """DCA 计算页面"""
     if request.method == 'POST':
-        # 获取用户输入的数据
         date_range = request.form.get('date_range', '').strip()
         interval = request.form.get('interval', '').strip()
         amount = request.form.get('amount', '').strip()
 
-        # 保存用户的输入到 session 中
         session['last_date_range'] = date_range
         session['last_interval'] = interval
         session['last_amount'] = amount
@@ -117,7 +186,6 @@ def dca():
             error = "所有字段都是必填的。"
             return render_template('dca.html', error=error)
 
-        # 檢查並轉換投資金額
         try:
             amount = float(amount)
             if amount <= 0:
@@ -126,7 +194,6 @@ def dca():
             error = f"Invalid amount: {ve}"
             return render_template('dca.html', error=error)
 
-        # 解析日期范围
         dates = date_range.split(' to ')
         if len(dates) == 2:
             start_date_str, end_date_str = dates
@@ -134,7 +201,6 @@ def dca():
             error = "Please select a valid date range."
             return render_template('dca.html', error=error)
 
-        # 調用計算函數
         total_invested, total_value, roi_percentage, investment_dates, investment_values = calculate_dca(
             start_date_str, end_date_str, interval, amount
         )
@@ -150,7 +216,6 @@ def dca():
                                investment_dates=investment_dates,
                                investment_values=investment_values)
 
-    # 在 GET 請求時，從 session 中讀取上次的輸入，並傳遞給模板
     last_date_range = session.get('last_date_range', '')
     last_interval = session.get('last_interval', '')
     last_amount = session.get('last_amount', '')
@@ -163,8 +228,6 @@ def dca():
 def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     """计算定期定额投资回报"""
     symbol = 'BTCUSDT'
-
-    # 转换日期字符串为 datetime 对象
     try:
         start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d')
         end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d')
@@ -172,12 +235,10 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
         print(f"Date parsing error: {e}")
         return 0, 0, 0, [], []
 
-    # 确保结束日期不早于开始日期
     if end_date < start_date:
         print("End date is before start date")
         return 0, 0, 0, [], []
 
-    # 根据间隔生成投资日期列表
     investment_dates = []
     current_date = start_date
 
@@ -211,7 +272,6 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     headers = {'User-Agent': 'Mozilla/5.0'}
     proxies = {"http": None, "https": None}
 
-    # 批量获取价格数据
     all_data = []
     limit = 1000
     start_time = int(start_date.timestamp() * 1000)
@@ -239,14 +299,12 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
             traceback.print_exc()
             return 0, 0, 0, [], []
 
-    # 创建日期到收盘价的映射
     date_price_map = {}
     for item in all_data:
         date = datetime.datetime.fromtimestamp(item[0] / 1000).date()
         closing_price = float(item[4])
         date_price_map[date] = closing_price
 
-    # 计算每次投资购买的 BTC 数量，并记录投资价值
     for investment_date in investment_dates:
         price = date_price_map.get(investment_date.date())
         if price:
@@ -268,10 +326,8 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
 
     return round(total_invested, 2), round(total_value, 2), round(roi_percentage, 2), investment_dates_formatted, investment_values
 
-# API 端点，用于获取历史数据
 @app.route('/api/bitcoin-historical-data')
 def bitcoin_historical_data():
-    """获取比特币历史数据的 API 端点"""
     interval = request.args.get('interval', '1d')
     start_time = request.args.get('startTime')
     end_time = request.args.get('endTime')
@@ -307,14 +363,11 @@ def bitcoin_historical_data():
         traceback.print_exc()
         return jsonify({'error': 'Unable to fetch data'}), 500
 
-# API 端点，用于获取实时比特币价格
 @app.route('/api/bitcoin-price')
 def bitcoin_price_api():
-    """获取实时比特币价格的 API 端点"""
     price = get_bitcoin_price()
     return jsonify({'price': price})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # 使用 Heroku 提供的端口
-    app.run(host='0.0.0.0', port=port)  # 在所有可用的 IP 上運行
-
+    app.run(host='0.0.0.0', port=port)

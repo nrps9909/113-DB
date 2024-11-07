@@ -26,17 +26,21 @@ h1, h2, h5 {
     transition: background-color 0.3s, color 0.3s;
 }
 
+/* btn-cyberpunk 样式 */
 .btn-cyberpunk {
     background-color: transparent;
     border: 1px solid #ff00ff;
     color: #ff00ff;
+    font-weight: bold;
 }
 
 .btn-cyberpunk:hover {
     background-color: #ff00ff;
     color: #0d0d0d;
+    box-shadow: 0px 0px 15px rgba(255, 0, 255, 0.4);
 }
 
+/* 其他按钮样式 */
 .btn-primary {
     background-color: #ff00ff;
     border: none;
@@ -81,6 +85,7 @@ h1, h2, h5 {
 /* 表单样式 */
 .form-label {
     color: #e0e0e0;
+    font-weight: bold;
 }
 
 .form-control, .form-select {
@@ -92,6 +97,8 @@ h1, h2, h5 {
 .form-control:focus, .form-select:focus {
     background-color: #1a1a1a;
     color: #e0e0e0;
+    border-color: #ff00ff;
+    box-shadow: 0px 0px 5px rgba(255, 0, 255, 0.5);
 }
 
 /* 实时价格样式 */
@@ -182,4 +189,29 @@ h1, h2, h5 {
     font-size: 1.8em;
     margin-bottom: 10px;
     font-weight: bold;
+}
+
+/* 卡片样式 */
+.register-card, .login-card {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    color: #e0e0e0;
+    box-shadow: 0px 0px 15px rgba(255, 0, 255, 0.2);
+}
+
+/* 表单标题 */
+.register-card h2, .login-card h2 {
+    color: #ff00ff;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+/* 链接样式 */
+.text-info {
+    color: #00ffff !important;
+}
+
+.text-info:hover {
+    color: #00cccc !important;
 }

@@ -1,9 +1,12 @@
-// main.js
-
-// 获取实时价格元素
+// 定義常量
 const priceElement = document.getElementById('price');
+const loadingElement = document.getElementById('loading');
+const ctx = document.getElementById('klineChart').getContext('2d');
+const rangeButtons = document.querySelectorAll('.range-btn');
+const customRangePicker = document.getElementById('custom-range-picker');
+const fetchCustomDataButton = document.getElementById('fetch-custom-data');
 
-// 更新价格显示样式
+// 更新價格顯示樣式
 function updatePrice(newPrice) {
     const currentPrice = parseFloat(priceElement.textContent.replace('$', '')) || 0;
     priceElement.textContent = `$${newPrice.toFixed(2)}`;
@@ -39,18 +42,12 @@ function fetchBitcoinPrice() {
 
 // 初次获取价格
 fetchBitcoinPrice();
-
-// 每秒更新价格
-setInterval(fetchBitcoinPrice, 10000);
+setInterval(fetchBitcoinPrice, 10000); // 每秒更新价格
 
 // 初始化 K 线图
-const ctx = document.getElementById('klineChart').getContext('2d');
-
-// 设置全局默认选项
 Chart.defaults.color = '#e0e0e0';
 Chart.defaults.font.family = 'Orbitron, sans-serif';
 
-// 定义 K 线图
 let klineChart = new Chart(ctx, {
     type: 'candlestick',
     data: {
@@ -58,9 +55,9 @@ let klineChart = new Chart(ctx, {
             label: 'Bitcoin Price',
             data: [],
             color: {
-                up: '#00ff00',      // 霓虹绿色
-                down: '#ff0000',    // 霓虹红色
-                unchanged: '#e0e0e0' // 淡灰色
+                up: '#00ff00',      
+                down: '#ff0000',    
+                unchanged: '#e0e0e0' 
             }
         }]
     },
@@ -91,11 +88,19 @@ let klineChart = new Chart(ctx, {
     }
 });
 
-// 根据选择的范围获取数据并更新图表
+// 获取并更新图表数据
 function fetchData(range, startDate = null, endDate = null) {
-    let interval;
+    const intervalMapping = {
+        '1d': '3m',
+        '7d': '15m',
+        '1mo': '1h',
+        '1y': '12h',
+        '3y': '3d',
+        '10y': '1w'
+    };
+    let interval = intervalMapping[range] || '3m';
     let startTime;
-    let endTime = Date.now(); // 使用 let 以便重新赋值
+    let endTime = Date.now();
 
     if (range === 'custom') {
         if (!startDate || !endDate) {
@@ -103,93 +108,73 @@ function fetchData(range, startDate = null, endDate = null) {
             return;
         }
         startTime = startDate.getTime();
-        endTime = endDate.getTime(); // 允许赋值
+        endTime = endDate.getTime();
         interval = determineInterval(startTime, endTime);
     } else {
-        switch (range) {
-            case '1d':
-                interval = '3m';
-                startTime = endTime - 1 * 24 * 60 * 60 * 1000;
-                break;
-            case '7d':
-                interval = '15m';
-                startTime = endTime - 7 * 24 * 60 * 60 * 1000;
-                break;
-            case '1mo':
-                interval = '1h';
-                startTime = endTime - 30 * 24 * 60 * 60 * 1000;
-                break;
-            case '1y':
-                interval = '12h';
-                startTime = endTime - 365 * 24 * 60 * 60 * 1000;
-                break;
-            case '3y':
-                interval = '3d';
-                startTime = endTime - 3 * 365 * 24 * 60 * 60 * 1000;
-                break;
-            case '10y':
-                interval = '1w';
-                startTime = new Date('2017-01-01').getTime();
-                break;
-            default:
-                interval = '3m';
-                startTime = endTime - 1 * 24 * 60 * 60 * 1000;
-        }
+        const dayMs = 24 * 60 * 60 * 1000;
+        const rangeMs = {
+            '1d': 1 * dayMs,
+            '7d': 7 * dayMs,
+            '1mo': 30 * dayMs,
+            '1y': 365 * dayMs,
+            '3y': 3 * 365 * dayMs,
+            '10y': endTime - new Date('2017-01-01').getTime()
+        };
+        startTime = endTime - (rangeMs[range] || dayMs);
     }
 
-    $('#loading').show();
+    loadingElement.style.display = 'block';
     $.ajax({
         url: '/api/bitcoin-historical-data',
         data: { interval: interval, startTime: startTime, endTime: endTime },
         success: function(data) {
             if (data.error) {
                 alert("Error fetching data: " + data.error);
-                $('#loading').hide();
+                loadingElement.style.display = 'none';
                 return;
             }
-
-            const chartData = data.prices.map(item => ({
-                x: item.x,
-                o: item.o,
-                h: item.h,
-                l: item.l,
-                c: item.c
-            }));
-
-            // 更新 K 线图数据
-            klineChart.data.datasets[0].data = chartData;
-            klineChart.resetZoom();
-
-            // 设置默认 x 轴和 y 轴范围
-            if (chartData.length > 0) {
-                klineChart.options.scales.x.min = chartData[0].x;
-                klineChart.options.scales.x.max = chartData[chartData.length - 1].x;
-
-                const yValues = chartData.flatMap(d => [d.o, d.h, d.l, d.c]);
-                klineChart.options.scales.y.min = Math.min(...yValues);
-                klineChart.options.scales.y.max = Math.max(...yValues);
-
-                // 设置缩放和平移限制
-                klineChart.options.plugins.zoom.limits = {
-                    x: { min: chartData[0].x, max: chartData[chartData.length - 1].x },
-                    y: { min: Math.min(...yValues), max: Math.max(...yValues) }
-                };
-            }
-
-            // 更新图表
-            klineChart.update();
-
-            $('#loading').hide();
+            updateChart(data.prices);
+            loadingElement.style.display = 'none';
         },
         error: function(error) {
             console.error("Unable to fetch data", error);
-            $('#loading').hide();
+            loadingElement.style.display = 'none';
             alert("Unable to fetch data. Please try again later.");
         }
     });
 }
 
-// 根据日期范围决定合适的间隔
+// 更新图表数据
+function updateChart(prices) {
+    const chartData = prices.map(item => ({
+        x: item.x,
+        o: item.o,
+        h: item.h,
+        l: item.l,
+        c: item.c
+    }));
+
+    klineChart.data.datasets[0].data = chartData;
+    klineChart.resetZoom();
+
+    if (chartData.length > 0) {
+        klineChart.options.scales.x.min = chartData[0].x;
+        klineChart.options.scales.x.max = chartData[chartData.length - 1].x;
+
+        const yValues = chartData.flatMap(d => [d.o, d.h, d.l, d.c]);
+        klineChart.options.scales.y.min = Math.min(...yValues);
+        klineChart.options.scales.y.max = Math.max(...yValues);
+
+        klineChart.options.plugins.zoom.limits = {
+            x: { min: chartData[0].x, max: chartData[chartData.length - 1].x },
+            y: { min: Math.min(...yValues), max: Math.max(...yValues) }
+        };
+    }
+
+    klineChart.update();
+}
+
+// 确定合适的时间间隔
 function determineInterval(startTime, endTime) {
     const diff = endTime - startTime;
     const day = 24 * 60 * 60 * 1000;
@@ -216,20 +201,20 @@ flatpickr("#date-range", {
 });
 
 // 为每个范围按钮添加点击事件
-document.querySelectorAll('.range-btn').forEach(button => {
+rangeButtons.forEach(button => {
     button.addEventListener('click', () => {
         const range = button.getAttribute('data-range');
         if (range === 'custom') {
-            document.getElementById('custom-range-picker').style.display = 'block';
+            customRangePicker.style.display = 'block';
         } else {
-            document.getElementById('custom-range-picker').style.display = 'none';
+            customRangePicker.style.display = 'none';
             fetchData(range);
         }
     });
 });
 
 // 处理自定义日期范围的请求
-document.getElementById('fetch-custom-data').addEventListener('click', () => {
+fetchCustomDataButton.addEventListener('click', () => {
     if (!startDate || !endDate) {
         alert("Please select start and end dates.");
         return;
