@@ -134,19 +134,17 @@ def get_bitcoin_price():
 def index():
     """Homepage displaying all logs and real-time Bitcoin price"""
     try:
-        # Fetch logs and convert _id to string in each log entry
         logs = logs_collection.find()
-        logs = [
-            {**log, "_id": str(log["_id"]), "user_id": str(log["user_id"])} 
-            for log in logs
-        ]
+        # Convert each log's `_id` to a string, and handle missing `user_id` gracefully
+        logs = [{**log, "_id": str(log["_id"]), "user_id": str(log.get("user_id", ""))} for log in logs]
         bitcoin_price = get_bitcoin_price()
         return render_template('index.html', logs=logs, bitcoin_price=bitcoin_price)
     except Exception as e:
         print(f"Error loading index page: {e}")
         traceback.print_exc()
         flash("An error occurred while loading the main page.", "error")
-        return redirect(url_for('login'))
+        return redirect(url_for('login'))  # or a custom error page
+
 
 
 # 创建新日志（僅限登入用戶）
