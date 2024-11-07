@@ -132,10 +132,18 @@ def get_bitcoin_price():
 
 @app.route('/')
 def index():
-    """主页，显示所有日志和实时比特币价格"""
-    logs = logs_collection.find()
-    bitcoin_price = get_bitcoin_price()
-    return render_template('index.html', logs=logs, bitcoin_price=bitcoin_price)
+    """Homepage displaying all logs and real-time Bitcoin price"""
+    try:
+        logs = logs_collection.find()
+        # Convert each log's `_id` to a string
+        logs = [{**log, "_id": str(log["_id"])} for log in logs]
+        bitcoin_price = get_bitcoin_price()
+        return render_template('index.html', logs=logs, bitcoin_price=bitcoin_price)
+    except Exception as e:
+        print(f"Error loading index page: {e}")
+        traceback.print_exc()
+        flash("An error occurred while loading the main page.", "error")
+        return redirect(url_for('login'))  # or a custom error page
 
 # 创建新日志（僅限登入用戶）
 @app.route('/create', methods=['GET', 'POST'])
