@@ -9,14 +9,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <nav class="navbar">
+    <nav class="navbar navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">Bitcoin Information Platform</a>
         </div>
     </nav>
 
     <div class="container mt-5">
-        <h1>{{ log.name }}</h1>
+        <h1 class="text-light">{{ log.name }}</h1>
         <p>{{ log.description }}</p>
         <a href="{{ url_for('index') }}" class="btn btn-secondary">Back</a>
     </div>
