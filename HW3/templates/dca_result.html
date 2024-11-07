@@ -7,35 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        /* Additional styling for improved layout and legibility */
-        body {
-            background-color: #121212;
-            color: #e0e0e0;
-            font-family: 'Orbitron', sans-serif;
-        }
-        #investmentChartContainer {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-        }
-        .navbar-brand {
-            font-size: 1.5rem;
-        }
-        .result-container h2 {
-            font-size: 2rem;
-            color: #00ff00;
-        }
-        .result-item {
-            font-size: 1.25rem;
-            margin: 0.5rem 0;
-        }
-        .btn-secondary {
-            font-size: 1.1rem;
-            padding: 0.75rem 1.5rem;
-        }
-    </style>
 </head>
 <body>
     <nav class="navbar navbar-dark bg-dark">
@@ -45,25 +16,25 @@
     </nav>
 
     <div class="container mt-5">
-        <!-- Centered Chart Container -->
+        <!-- Chart Container -->
         <div id="investmentChartContainer" class="row justify-content-center">
             <div class="col-lg-10 col-md-12 text-center">
                 <canvas id="investmentChart" style="max-width: 100%; height: 500px;"></canvas>
             </div>
         </div>
         
-        <!-- Investment result text below the chart -->
+        <!-- Investment Results -->
         <div class="row justify-content-center mt-4">
             <div class="col-lg-8 col-md-10 col-sm-12 result-container text-center">
-                <h2>Investment Results</h2>
-                <div class="result-item">Total Invested: ${{ total_invested }}</div>
-                <div class="result-item">Total Value Now: ${{ total_value }}</div>
-                <div class="result-item">Return on Investment: {{ roi_percentage }}%</div>
+                <h2 class="text-info">Investment Results</h2>
+                <div class="result-item">Total Invested: <span class="text-warning">${{ total_invested }}</span></div>
+                <div class="result-item">Total Value Now: <span class="text-success">${{ total_value }}</span></div>
+                <div class="result-item">Return on Investment: <span class="text-info">{{ roi_percentage }}%</span></div>
             </div>
         </div>
         
         <div class="text-center mt-4">
-            <a href="{{ url_for('dca') }}" class="btn btn-secondary">Back to Calculator</a>
+            <a href="{{ url_for('dca') }}" class="btn btn-cyberpunk">Back to Calculator</a>
         </div>
     </div>
 

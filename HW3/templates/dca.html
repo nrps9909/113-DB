@@ -18,18 +18,26 @@
     <div class="container mt-5">
         <div class="calculator-container">
             <h1 class="mb-4">DCA Investment Calculator</h1>
-            {% if error %}
-                <div class="error-message">{{ error }}</div>
-            {% endif %}
+            
+            <!-- Flash Messages for Errors -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="alert-container">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} text-center">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
             <form action="{{ url_for('dca') }}" method="POST">
-                <!-- 日期范围选择器 -->
                 <div class="mb-3">
                     <label for="date-range" class="form-label">Investment Period</label>
                     <input type="text" class="form-control" id="date-range" name="date_range" 
                            placeholder="Select Date Range" 
                            value="{{ date_range }}" required>
                 </div>
-                <!-- 投资间隔 -->
+                
                 <div class="mb-3">
                     <label for="interval" class="form-label">Investment Interval</label>
                     <select class="form-select" id="interval" name="interval" required>
@@ -39,15 +47,15 @@
                         <option value="monthly" {% if interval == 'monthly' %}selected{% endif %}>Monthly</option>
                     </select>
                 </div>
-                <!-- 每次投资金额 -->
+
                 <div class="mb-3">
                     <label for="amount" class="form-label">Amount per Interval (USD)</label>
                     <input type="number" class="form-control" id="amount" name="amount" step="0.01" 
                            placeholder="Enter Amount" value="{{ amount }}" required>
                 </div>
-                <!-- 提交按钮 -->
-                <button type="submit" class="btn btn-primary">Calculate</button>
-                <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+
+                <button type="submit" class="btn btn-cyberpunk w-100 mb-3">Calculate</button>
+                <a href="{{ url_for('index') }}" class="btn btn-cyberpunk w-100">Back to Home</a>
             </form>
         </div>
     </div>
@@ -59,9 +67,9 @@
         dateFormat: "Y-m-d",
         maxDate: "today",
         defaultDate: "{{ date_range }}",
-        yearSelector: true,  // 啟用年份選擇器
-        yearRange: [2000, new Date().getFullYear()] // 設定年份範圍，這裡設定從 2000 年到當前年份
+        yearSelector: true,
+        yearRange: [2000, new Date().getFullYear()]
     });
-</script>
+    </script>
 </body>
 </html>
