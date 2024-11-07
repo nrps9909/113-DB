@@ -167,42 +167,65 @@ def create():
             return render_template('create.html')
     return render_template('create.html')
 
-# 编辑日志（仅限拥有该日志的用户或管理員）
 @app.route('/edit/<log_id>', methods=['GET', 'POST'])
 @login_required
 def edit(log_id):
-    log = logs_collection.find_one({'_id': ObjectId(log_id)})
-    if not log or (str(log['user_id']) != current_user.id and not current_user.is_admin):
-        flash("You do not have permission to edit this log.", "error")
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        if name and description:
-            logs_collection.update_one(
-                {'_id': ObjectId(log_id)},
-                {'$set': {'name': name, 'description': description}}
-            )
-            flash("Log updated successfully!", "success")
+    try:
+        log = logs_collection.find_one({'_id': ObjectId(log_id)})
+        
+        # Check if log exists and if user is authorized
+        if not log:
+            flash("Log not found.", "error")
             return redirect(url_for('index'))
-        else:
-            flash("Name and Description are required.", "error")
-            return render_template('edit.html', log=log)
-    return render_template('edit.html', log=log)
+        
+        # Ensure `user_id` field exists or handle as needed
+        log_user_id = str(log.get('user_id', ""))
 
-# 删除日志（仅限拥有该日志的用户或管理員）
+        # Allow edit only if current user is the owner or an admin
+        if log_user_id != current_user.id and not current_user.is_admin:
+            flash("You do not have permission to edit this log.", "error")
+            return redirect(url_for('index'))
+        
+        # Handle form submission
+        if request.method == 'POST':
+            name = request.form.get('name', '').strip()
+            description = request.form.get('description', '').strip()
+            if name and description:
+                logs_collection.update_one(
+                    {'_id': ObjectId(log_id)},
+                    {'$set': {'name': name, 'description': description}}
+                )
+                flash("Log updated successfully!", "success")
+                return redirect(url_for('index'))
+            else:
+                flash("Name and Description are required.", "error")
+        
+        # Render edit page with the log details
+        return render_template('edit.html', log=log)
+    
+    except Exception as e:
+        print(f"Error in edit function: {e}")
+        traceback.print_exc()
+        flash("An error occurred while editing the log.", "error")
+        return redirect(url_for('index'))
+    
+# 在delete函數中增加安全的user_id檢查
 @app.route('/delete/<log_id>', methods=['POST'])
 @login_required
 def delete(log_id):
     log = logs_collection.find_one({'_id': ObjectId(log_id)})
-    if not log or (log['user_id'] != current_user.id and not current_user.is_admin):
+    log_user_id = str(log.get('user_id', ""))  # 安全地獲取 user_id
+    
+    # 增加檢查
+    if not log or (log_user_id != current_user.id and not current_user.is_admin):
         flash("You do not have permission to delete this log.", "error")
         return redirect(url_for('index'))
 
     logs_collection.delete_one({'_id': ObjectId(log_id)})
     flash("Log deleted successfully.", "success")
     return redirect(url_for('index'))
+
+
 
 @app.route('/detail/<log_id>')
 def detail(log_id):
