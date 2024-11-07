@@ -15,10 +15,10 @@
             <div>
                 {% if current_user.is_authenticated %}
                     <span class="navbar-text me-3">Welcome, {{ current_user.username }}!</span>
-                    <a class="btn btn-secondary" href="{{ url_for('auth.logout') }}">Logout</a>
+                    <a class="btn btn-secondary" href="{{ url_for('logout') }}">Logout</a>
                 {% else %}
-                    <a class="btn btn-cyberpunk" href="{{ url_for('auth.login') }}">Login</a>
-                    <a class="btn btn-cyberpunk" href="{{ url_for('auth.register') }}">Register</a>
+                    <a class="btn btn-cyberpunk" href="{{ url_for('login') }}">Login</a>
+                    <a class="btn btn-cyberpunk" href="{{ url_for('register') }}">Register</a>
                 {% endif %}
                 <a class="btn btn-cyberpunk" href="{{ url_for('create') }}">Add Log</a>
                 <a class="btn btn-cyberpunk" href="{{ url_for('dca') }}">DCA Calculator</a>
