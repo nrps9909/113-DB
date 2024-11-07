@@ -42,7 +42,9 @@
         const ctx = document.getElementById('investmentChart').getContext('2d');
         const investmentDates = {{ investment_dates | tojson | safe }};
         const investmentValues = {{ investment_values | tojson | safe }};
-        const investedAmounts = investmentDates.map((_, i) => (i + 1) * {{ amount }});
+        const amount = {{ amount | tojson }};  // 添加此行
+
+        const investedAmounts = investmentDates.map((_, i) => (i + 1) * amount);
 
         if (investmentDates.length === 0 || investmentValues.length === 0) {
             alert("No investment data available to display the chart.");

@@ -68,7 +68,10 @@
         maxDate: "today",
         defaultDate: "{{ date_range }}",
         yearSelector: true,
-        yearRange: [2000, new Date().getFullYear()]
+        yearRange: [2000, new Date().getFullYear()],
+        locale: {
+            rangeSeparator: " to "
+        }
     });
     </script>
 </body>

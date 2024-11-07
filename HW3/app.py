@@ -136,6 +136,39 @@ def get_bitcoin_price():
         traceback.print_exc()
         return 0  # 修改此處以返回數字 0，避免返回字符串引發後續問題
 
+# 新增一個獨立的 get_historical_data 函數，並添加快取
+@cache.memoize(timeout=3600)  # 快取 1 小時，可根據需要調整
+def get_historical_data(symbol, interval, start_time, end_time_ms):
+    """獲取歷史數據，並進行快取"""
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    proxies = {"http": None, "https": None}
+    all_data = []
+    limit = 1000
+    current_start_time = start_time
+
+    while current_start_time < end_time_ms:
+        params = {
+            'symbol': symbol,
+            'interval': interval,
+            'startTime': current_start_time,
+            'endTime': end_time_ms,
+            'limit': limit
+        }
+        try:
+            response = requests.get(f'{BASE_URL}/api/v3/klines', params=params, headers=headers, proxies=proxies, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if not data:
+                break
+            all_data.extend(data)
+            current_start_time = data[-1][0] + 1
+        except requests.exceptions.RequestException as e:
+            print("API request error:", e)
+            traceback.print_exc()
+            return []
+
+    return all_data
+
 @app.route('/')
 def index():
     """Homepage displaying all logs and real-time Bitcoin price"""
@@ -273,9 +306,15 @@ def dca():
             error = "Please select a valid date range."
             return render_template('dca.html', error=error)
 
-        total_invested, total_value, roi_percentage, investment_dates, investment_values = calculate_dca(
-            start_date_str, end_date_str, interval, amount
-        )
+        try:
+            total_invested, total_value, roi_percentage, investment_dates, investment_values = calculate_dca(
+                start_date_str, end_date_str, interval, amount
+            )
+        except Exception as e:
+            print(f"Error in calculate_dca: {e}")
+            traceback.print_exc()
+            error = "計算過程中發生錯誤，請重試。"
+            return render_template('dca.html', error=error)
 
         return render_template('dca_result.html',
                                start_date=start_date_str,
@@ -342,41 +381,13 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     investment_dates_formatted = []
     investment_values = []
 
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    proxies = {"http": None, "https": None}
-
-    all_data = []
-    limit = 1000
     start_time = int(start_date.timestamp() * 1000)
     end_time_ms = int((end_date + datetime.timedelta(days=1)).timestamp() * 1000) - 1
-    current_start_time = start_time
 
-    @cache.memoize(timeout=3600)  # 快取 1 小時，可根據需要調整
-    def get_historical_data(start_time, end_time_ms):
-        while current_start_time < end_time_ms:
-            params = {
-                'symbol': symbol,
-                'interval': '1d',
-                'startTime': current_start_time,
-                'endTime': end_time_ms,
-                'limit': limit
-            }
-            try:
-                response = requests.get(f'{BASE_URL}/api/v3/klines', params=params, headers=headers, proxies=proxies, timeout=10)
-                response.raise_for_status()
-                data = response.json()
-                if not data:
-                    break
-                all_data.extend(data)
-                current_start_time = data[-1][0] + 1
-            except requests.exceptions.RequestException as e:
-                print("API request error:", e)
-                traceback.print_exc()
-                return 0, 0, 0, [], []
-
-        return all_data
-
-    all_data = get_historical_data(start_time, end_time_ms)
+    # 調用快取的 get_historical_data 函數
+    all_data = get_historical_data(symbol, '1d', start_time, end_time_ms)
+    if not all_data:
+        return 0, 0, 0, [], []
 
     date_price_map = {}
     for item in all_data:
