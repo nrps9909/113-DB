@@ -3,6 +3,9 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import InputRequired, Length
 import requests
 import traceback
 import datetime
@@ -19,6 +22,7 @@ app.secret_key = os.getenv('SECRET_KEY')  # 從環境變數中讀取密鑰
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+login_manager.login_message = "請登入以訪問此頁面。"
 
 # MongoDB 連線
 MONGO_URI = os.getenv("MONGODB_URI")
@@ -27,60 +31,85 @@ db = client['my_database']  # 替換成你的資料庫名稱
 users_collection = db['users']  # 使用者資料的集合
 logs_collection = db['startup_log']  # 留言資料的集合
 
+# 建立管理員帳號
+admin_account = users_collection.find_one({'username': 'admin'})
+if not admin_account:
+    hashed_password = bcrypt.generate_password_hash("Ab921218").decode('utf-8')
+    users_collection.insert_one({'username': 'admin', 'password': hashed_password, 'is_admin': True})
+
 # Binance API URL
 BASE_URL = 'https://data-api.binance.vision'
 
 class User(UserMixin):
-    def __init__(self, user_id, username):
+    def __init__(self, user_id, username, is_admin=False):
         self.id = user_id
         self.username = username
+        self.is_admin = is_admin
 
 @login_manager.user_loader
 def load_user(user_id):
     user_data = users_collection.find_one({"_id": ObjectId(user_id)})
     if user_data:
-        return User(user_id=str(user_data['_id']), username=user_data['username'])
+        return User(user_id=str(user_data['_id']), username=user_data['username'], is_admin=user_data.get('is_admin', False))
     return None
+
+# 表單定義
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[InputRequired(), Length(min=3, max=15)])
+    password = PasswordField('Password', validators=[InputRequired(), Length(min=6)])
+
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[InputRequired(), Length(min=3, max=15)])
+    password = PasswordField('Password', validators=[InputRequired()])
 
 # 註冊頁面
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password'].strip()
-        
+    form = RegisterForm()
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        password = form.password.data.strip()
+
         if users_collection.find_one({'username': username}):
-            flash("Username already exists!")
+            flash("Username already exists!", "error")
             return redirect(url_for('register'))
-        
+
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        user_id = users_collection.insert_one({'username': username, 'password': hashed_password}).inserted_id
+        user_id = users_collection.insert_one({'username': username, 'password': hashed_password, 'is_admin': False}).inserted_id
         login_user(User(user_id=str(user_id), username=username))
+        flash("Registration successful!", "success")
         return redirect(url_for('index'))
-    
-    return render_template('register.html')
+
+    return render_template('register.html', form=form)
 
 # 登入頁面
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password'].strip()
-        
+    form = LoginForm()
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        password = form.password.data.strip()
+
         user_data = users_collection.find_one({'username': username})
-        if user_data and bcrypt.check_password_hash(user_data['password'], password):
-            user = User(user_id=str(user_data['_id']), username=username)
-            login_user(user)
-            return redirect(url_for('index'))
-        
-        flash("Invalid username or password.")
-    return render_template('login.html')
+        if user_data:
+            if bcrypt.check_password_hash(user_data['password'], password):
+                user = User(user_id=str(user_data['_id']), username=username, is_admin=user_data.get('is_admin', False))
+                login_user(user)
+                flash("Login successful!", "success")
+                return redirect(url_for('index'))
+            else:
+                flash("Incorrect password.", "error")
+        else:
+            flash("Username does not exist.", "error")
+
+    return render_template('login.html', form=form)
 
 # 登出
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
+    flash("You have been logged out.", "info")
     return redirect(url_for('index'))
 
 def get_bitcoin_price():
@@ -99,7 +128,7 @@ def get_bitcoin_price():
     except requests.exceptions.RequestException as e:
         print(f"Failed to retrieve Bitcoin price: {e}")
         traceback.print_exc()
-        return "Unable to retrieve price"
+        return 0  # 修改此處以返回數字 0，避免返回字符串引發後續問題
 
 @app.route('/')
 def index():
@@ -121,19 +150,20 @@ def create():
                 'description': description,
                 'user_id': current_user.id  # 保存當前登入使用者的ID
             })
+            flash("Log created successfully!", "success")
             return redirect(url_for('index'))
         else:
-            error = "Name and Description are required."
-            return render_template('create.html', error=error)
+            flash("Name and Description are required.", "error")
+            return render_template('create.html')
     return render_template('create.html')
 
-# 编辑日志（仅限拥有该日志的用户）
+# 编辑日志（仅限拥有该日志的用户或管理員）
 @app.route('/edit/<log_id>', methods=['GET', 'POST'])
 @login_required
 def edit(log_id):
     log = logs_collection.find_one({'_id': ObjectId(log_id)})
-    if not log or log['user_id'] != current_user.id:
-        flash("You do not have permission to edit this log.")
+    if not log or (log['user_id'] != current_user.id and not current_user.is_admin):
+        flash("You do not have permission to edit this log.", "error")
         return redirect(url_for('index'))
 
     if request.method == 'POST':
@@ -144,22 +174,24 @@ def edit(log_id):
                 {'_id': ObjectId(log_id)},
                 {'$set': {'name': name, 'description': description}}
             )
+            flash("Log updated successfully!", "success")
             return redirect(url_for('index'))
         else:
-            error = "Name and Description are required."
-            return render_template('edit.html', log=log, error=error)
+            flash("Name and Description are required.", "error")
+            return render_template('edit.html', log=log)
     return render_template('edit.html', log=log)
 
-# 删除日志（仅限拥有该日志的用户）
+# 删除日志（仅限拥有该日志的用户或管理員）
 @app.route('/delete/<log_id>', methods=['POST'])
 @login_required
 def delete(log_id):
     log = logs_collection.find_one({'_id': ObjectId(log_id)})
-    if not log or log['user_id'] != current_user.id:
-        flash("You do not have permission to delete this log.")
+    if not log or (log['user_id'] != current_user.id and not current_user.is_admin):
+        flash("You do not have permission to delete this log.", "error")
         return redirect(url_for('index'))
 
     logs_collection.delete_one({'_id': ObjectId(log_id)})
+    flash("Log deleted successfully.", "success")
     return redirect(url_for('index'))
 
 @app.route('/detail/<log_id>')
@@ -167,7 +199,8 @@ def detail(log_id):
     """显示日志详情"""
     log = logs_collection.find_one({'_id': ObjectId(log_id)})
     if not log:
-        return "Log not found", 404
+        flash("Log not found", "error")
+        return redirect(url_for('index'))
     return render_template('detail.html', log=log)
 
 @app.route('/dca', methods=['GET', 'POST'])
