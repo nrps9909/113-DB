@@ -162,7 +162,7 @@ def create():
 @login_required
 def edit(log_id):
     log = logs_collection.find_one({'_id': ObjectId(log_id)})
-    if not log or (log['user_id'] != current_user.id and not current_user.is_admin):
+    if not log or (str(log['user_id']) != current_user.id and not current_user.is_admin):
         flash("You do not have permission to edit this log.", "error")
         return redirect(url_for('index'))
 
