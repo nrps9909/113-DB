@@ -11,6 +11,7 @@ import traceback
 import datetime
 import os
 from dotenv import load_dotenv
+from flask_caching import Cache  # 添加快取套件
 
 # 加載環境變數
 load_dotenv()
@@ -23,6 +24,10 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = "請登入以訪問此頁面。"
+
+# 初始化快取
+cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
+# 可調整 CACHE_DEFAULT_TIMEOUT 以設定預設的快取時間
 
 # MongoDB 連線
 MONGO_URI = os.getenv("MONGODB_URI")
@@ -112,6 +117,7 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for('index'))
 
+@cache.cached(timeout=60)
 def get_bitcoin_price():
     """获取实时比特币价格"""
     url = f'{BASE_URL}/api/v3/ticker/price'
@@ -291,6 +297,7 @@ def dca():
                            interval=last_interval, 
                            amount=last_amount)
 
+# 在 calculate_dca 函數中，對 Binance API 請求進行快取
 def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     """计算定期定额投资回报"""
     symbol = 'BTCUSDT'
@@ -344,26 +351,32 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     end_time_ms = int((end_date + datetime.timedelta(days=1)).timestamp() * 1000) - 1
     current_start_time = start_time
 
-    while current_start_time < end_time_ms:
-        params = {
-            'symbol': symbol,
-            'interval': '1d',
-            'startTime': current_start_time,
-            'endTime': end_time_ms,
-            'limit': limit
-        }
-        try:
-            response = requests.get(f'{BASE_URL}/api/v3/klines', params=params, headers=headers, proxies=proxies, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            if not data:
-                break
-            all_data.extend(data)
-            current_start_time = data[-1][0] + 1
-        except requests.exceptions.RequestException as e:
-            print("API request error:", e)
-            traceback.print_exc()
-            return 0, 0, 0, [], []
+    @cache.memoize(timeout=3600)  # 快取 1 小時，可根據需要調整
+    def get_historical_data(start_time, end_time_ms):
+        while current_start_time < end_time_ms:
+            params = {
+                'symbol': symbol,
+                'interval': '1d',
+                'startTime': current_start_time,
+                'endTime': end_time_ms,
+                'limit': limit
+            }
+            try:
+                response = requests.get(f'{BASE_URL}/api/v3/klines', params=params, headers=headers, proxies=proxies, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                if not data:
+                    break
+                all_data.extend(data)
+                current_start_time = data[-1][0] + 1
+            except requests.exceptions.RequestException as e:
+                print("API request error:", e)
+                traceback.print_exc()
+                return 0, 0, 0, [], []
+
+        return all_data
+
+    all_data = get_historical_data(start_time, end_time_ms)
 
     date_price_map = {}
     for item in all_data:
