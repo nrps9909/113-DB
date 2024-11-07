@@ -1,22 +1,23 @@
 /* 基本样式 */
 body {
-    background-color: #0d0d0d;
-    font-family: 'Orbitron', sans-serif;
-    color: #e0e0e0;
+    background-color: #0a0a0a; /* 更深的背景色 */
+    color: #00ffff; /* 賽博龐克的霓虹藍 */
+    font-family: 'Press Start 2P', 'Orbitron', sans-serif; /* 更新字體 */
 }
 
 h1, h2, h5 {
-    color: #f5f5f5;
+    color: #ff00ff;
+    text-shadow: 0 0 5px #ff00ff;
 }
 
 /* 导航栏样式 */
 .navbar {
-    background-color: #1a1a1a;
-    border-bottom: 2px solid #00ffff;
+    background-color: #0d0d0d;
+    border-bottom: 2px solid #ff00ff; /* 霓虹紫色邊框 */
 }
 
 .navbar-brand {
-    color: #00ffff !important;
+    color: #ff00ff !important; /* 霓虹紫色文字 */
     font-size: 1.5em;
 }
 
@@ -29,15 +30,32 @@ h1, h2, h5 {
 /* btn-cyberpunk 样式 */
 .btn-cyberpunk {
     background-color: transparent;
-    border: 1px solid #ff00ff;
+    border: 2px solid #ff00ff; /* 霓虹紫色邊框 */
     color: #ff00ff;
     font-weight: bold;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-cyberpunk::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 0, 255, 0.4), transparent);
+    transition: all 650ms;
+}
+
+.btn-cyberpunk:hover::before {
+    left: 100%;
 }
 
 .btn-cyberpunk:hover {
+    color: #0a0a0a;
     background-color: #ff00ff;
-    color: #0d0d0d;
-    box-shadow: 0px 0px 15px rgba(255, 0, 255, 0.4);
+    box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
 }
 
 /* 其他按钮样式 */
@@ -91,14 +109,14 @@ h1, h2, h5 {
 .form-control, .form-select {
     background-color: #1a1a1a;
     border: 1px solid #333;
-    color: #e0e0e0;
+    color: #00ffff;
 }
 
 .form-control:focus, .form-select:focus {
     background-color: #1a1a1a;
     color: #e0e0e0;
     border-color: #ff00ff;
-    box-shadow: 0px 0px 5px rgba(255, 0, 255, 0.5);
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
 }
 
 /* 实时价格样式 */
@@ -193,11 +211,11 @@ h1, h2, h5 {
 
 /* 卡片样式 */
 .register-card, .login-card {
-    background-color: #1a1a1a;
+    background-color: #0d0d0d;
     border: 1px solid #333;
     border-radius: 10px;
     color: #e0e0e0;
-    box-shadow: 0px 0px 15px rgba(255, 0, 255, 0.2);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
 }
 
 /* 表单标题 */
@@ -205,6 +223,28 @@ h1, h2, h5 {
     color: #ff00ff;
     font-size: 2em;
     font-weight: bold;
+}
+
+/* 链接样式 */
+a {
+    color: #00ffff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #ff00ff;
+    text-shadow: 0 0 5px #ff00ff;
+}
+
+/* 更新滾動條樣式 */
+::-webkit-scrollbar {
+    width: 10px;
+    background-color: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ff00ff, #00ffff);
+    border-radius: 5px;
 }
 
 /* 链接样式 */

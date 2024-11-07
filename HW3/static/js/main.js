@@ -6,39 +6,30 @@ const rangeButtons = document.querySelectorAll('.range-btn');
 const customRangePicker = document.getElementById('custom-range-picker');
 const fetchCustomDataButton = document.getElementById('fetch-custom-data');
 
-// 更新價格顯示樣式
-function updatePrice(newPrice) {
+// 使用箭頭函數和模板字串優化代碼
+const updatePrice = (newPrice) => {
     const currentPrice = parseFloat(priceElement.textContent.replace('$', '')) || 0;
     priceElement.textContent = `$${newPrice.toFixed(2)}`;
 
-    if (newPrice > currentPrice) {
-        priceElement.classList.add('price-up');
-        priceElement.classList.remove('price-down');
-    } else if (newPrice < currentPrice) {
-        priceElement.classList.add('price-down');
-        priceElement.classList.remove('price-up');
+    const priceClass = newPrice > currentPrice ? 'price-up' : newPrice < currentPrice ? 'price-down' : '';
+    if (priceClass) {
+        priceElement.classList.add(priceClass);
+        setTimeout(() => priceElement.classList.remove(priceClass), 500);
     }
+};
 
-    setTimeout(() => {
-        priceElement.classList.remove('price-up', 'price-down');
-    }, 500);
-}
-
-// 获取实时比特币价格并更新页面
-function fetchBitcoinPrice() {
-    $.ajax({
-        url: '/api/bitcoin-price',
-        success: function(data) {
+// 使用 fetch API 簡化 AJAX 請求
+const fetchBitcoinPrice = () => {
+    fetch('/api/bitcoin-price')
+        .then(response => response.json())
+        .then(data => {
             const newPrice = parseFloat(data.price);
             if (!isNaN(newPrice)) {
                 updatePrice(newPrice);
             }
-        },
-        error: function(error) {
-            console.error("Unable to fetch Bitcoin price", error);
-        }
-    });
-}
+        })
+        .catch(error => console.error("Unable to fetch Bitcoin price", error));
+};
 
 // 初次获取价格
 fetchBitcoinPrice();
