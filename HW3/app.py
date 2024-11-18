@@ -209,9 +209,11 @@ def create():
 @login_required
 def edit(log_id):
     try:
+        # 將 ObjectId 轉換為字符串
         log = logs_collection.find_one({'_id': ObjectId(log_id)})
+        if log:
+            log['_id'] = str(log['_id'])
         
-        # 检查日志是否存在以及用户是否有权限
         if not log:
             flash("Log not found.", "error")
             return redirect(url_for('index'))
@@ -265,12 +267,22 @@ def delete(log_id):
 
 @app.route('/detail/<log_id>')
 def detail(log_id):
-    """显示日志详情"""
-    log = logs_collection.find_one({'_id': ObjectId(log_id)})
-    if not log:
-        flash("Log not found", "error")
+    try:
+        # 將 ObjectId 轉換為字符串
+        log = logs_collection.find_one({'_id': ObjectId(log_id)})
+        if log:
+            log['_id'] = str(log['_id'])
+        
+        if not log:
+            flash("Log not found", "error")
+            return redirect(url_for('index'))
+            
+        return render_template('detail.html', log=log)
+    except Exception as e:
+        print(f"Error in detail function: {e}")
+        traceback.print_exc()
+        flash("An error occurred while viewing the log.", "error")
         return redirect(url_for('index'))
-    return render_template('detail.html', log=log)
 
 @app.route('/dca', methods=['GET', 'POST'])
 def dca():
