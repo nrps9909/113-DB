@@ -165,21 +165,39 @@ h1, h2, h5 {
     color: #ff00ff;
 }
 
-/* 自定义日期选择器样式（Flatpickr） */
+/* 日期選擇器樣式修正 */
 .flatpickr-calendar {
     background-color: #1a1a1a !important;
     color: #e0e0e0 !important;
     border: 1px solid #333 !important;
+    font-family: 'Press Start 2P', 'Orbitron', sans-serif !important;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+}
+
+.flatpickr-current-month {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    font-size: 1em;
+    padding: 5px 10px;
+    background-color: #2b2b2b;
+    color: #00ffff;
+    text-transform: uppercase;
+    border-bottom: 1px solid #333;
 }
 
 .flatpickr-day {
     background-color: #2b2b2b !important;
     border: 1px solid #333 !important;
     color: #e0e0e0 !important;
+    border-radius: 5px;
+    transition: all 0.3s ease-in-out;
 }
 
 .flatpickr-day:hover {
     background-color: #333 !important;
+    transform: scale(1.1);
 }
 
 .flatpickr-day.selected {
