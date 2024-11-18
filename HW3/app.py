@@ -11,36 +11,36 @@ import traceback
 import datetime
 import os
 from dotenv import load_dotenv
-from flask_caching import Cache  # 添加快取套件
+from flask_caching import Cache  # 添加缓存套件
 
-# 加載環境變數
+# 加载环境变量
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')  # 從環境變數中讀取密鑰
+app.secret_key = os.getenv('SECRET_KEY')  # 从环境变量中读取密钥
 
-# 設置加密和登入管理
+# 设置加密和登录管理
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "請登入以訪問此頁面。"
+login_manager.login_message = "请登录以访问此页面。"
 
-# 初始化快取
+# 初始化缓存
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
-# 可調整 CACHE_DEFAULT_TIMEOUT 以設定預設的快取時間
+# 可调整 CACHE_DEFAULT_TIMEOUT 以设置默认的缓存时间
 
-# MongoDB 連線
+# MongoDB 连接
 MONGO_URI = os.getenv("MONGODB_URI")
 client = MongoClient(MONGO_URI)
-db = client['my_database']  # 替換成你的資料庫名稱
-users_collection = db['users']  # 使用者資料的集合
-logs_collection = db['startup_log']  # 留言資料的集合
+db = client['my_database']  # 替换成你的数据库名称
+users_collection = db['users']  # 用户数据的集合
+logs_collection = db['startup_log']  # 日志数据的集合
 
-# 建立管理員帳號
+# 创建管理员账号
 admin_account = users_collection.find_one({'username': 'admin'})
 if not admin_account:
     hashed_password = bcrypt.generate_password_hash("Ab921218").decode('utf-8')
-    users_collection.insert_one({'username': 'admin', 'password': hashed_password, 'is_admin': True})
+    users_collection.insert_one({'_id': 'admin', 'username': 'admin', 'password': hashed_password, 'is_admin': True})
 
 # Binance API URL
 BASE_URL = 'https://data-api.binance.vision'
@@ -53,12 +53,12 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    user_data = users_collection.find_one({"_id": ObjectId(user_id)})
+    user_data = users_collection.find_one({"_id": user_id})
     if user_data:
-        return User(user_id=str(user_data['_id']), username=user_data['username'], is_admin=user_data.get('is_admin', False))
+        return User(user_id=user_data['_id'], username=user_data['username'], is_admin=user_data.get('is_admin', False))
     return None
 
-# 表單定義
+# 表单定义
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired(), Length(min=3, max=15)])
     password = PasswordField('Password', validators=[InputRequired(), Length(min=6)])
@@ -67,7 +67,7 @@ class LoginForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired(), Length(min=3, max=15)])
     password = PasswordField('Password', validators=[InputRequired()])
 
-# 註冊頁面
+# 注册页面
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
@@ -75,19 +75,20 @@ def register():
         username = form.username.data.strip()
         password = form.password.data.strip()
 
-        if users_collection.find_one({'username': username}):
+        if users_collection.find_one({'_id': username}):
             flash("Username already exists!", "error")
             return redirect(url_for('register'))
 
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        user_id = users_collection.insert_one({'username': username, 'password': hashed_password, 'is_admin': False}).inserted_id
-        login_user(User(user_id=str(user_id), username=username))
+        user_id = username  # 使用用户名作为自定义的 _id
+        users_collection.insert_one({'_id': user_id, 'username': username, 'password': hashed_password, 'is_admin': False})
+        login_user(User(user_id=user_id, username=username))
         flash("Registration successful!", "success")
         return redirect(url_for('index'))
 
     return render_template('register.html', form=form)
 
-# 登入頁面
+# 登录页面
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -95,10 +96,10 @@ def login():
         username = form.username.data.strip()
         password = form.password.data.strip()
 
-        user_data = users_collection.find_one({'username': username})
+        user_data = users_collection.find_one({'_id': username})
         if user_data:
             if bcrypt.check_password_hash(user_data['password'], password):
-                user = User(user_id=str(user_data['_id']), username=username, is_admin=user_data.get('is_admin', False))
+                user = User(user_id=user_data['_id'], username=username, is_admin=user_data.get('is_admin', False))
                 login_user(user)
                 flash("Login successful!", "success")
                 return redirect(url_for('index'))
@@ -134,12 +135,12 @@ def get_bitcoin_price():
     except requests.exceptions.RequestException as e:
         print(f"Failed to retrieve Bitcoin price: {e}")
         traceback.print_exc()
-        return 0  # 修改此處以返回數字 0，避免返回字符串引發後續問題
+        return 0  # 修改此处以返回数字 0，避免返回字符串引发后续问题
 
-# 新增一個獨立的 get_historical_data 函數，並添加快取
-@cache.memoize(timeout=3600)  # 快取 1 小時，可根據需要調整
+# 新增一个独立的 get_historical_data 函数，并添加缓存
+@cache.memoize(timeout=3600)  # 缓存 1 小时，可根据需要调整
 def get_historical_data(symbol, interval, start_time, end_time_ms):
-    """獲取歷史數據，並進行快取"""
+    """获取历史数据，并进行缓存"""
     headers = {'User-Agent': 'Mozilla/5.0'}
     proxies = {"http": None, "https": None}
     all_data = []
@@ -171,10 +172,10 @@ def get_historical_data(symbol, interval, start_time, end_time_ms):
 
 @app.route('/')
 def index():
-    """Homepage displaying all logs and real-time Bitcoin price"""
+    """主页显示所有日志和实时比特币价格"""
     try:
         logs = logs_collection.find()
-        # Convert each log's `_id` to a string, and handle missing `user_id` gracefully
+        # 转换每个日志的 `_id` 为字符串，安全地处理缺失的 `user_id`
         logs = [{**log, "_id": str(log["_id"]), "user_id": str(log.get("user_id", ""))} for log in logs]
         bitcoin_price = get_bitcoin_price()
         return render_template('index.html', logs=logs, bitcoin_price=bitcoin_price)
@@ -182,11 +183,9 @@ def index():
         print(f"Error loading index page: {e}")
         traceback.print_exc()
         flash("An error occurred while loading the main page.", "error")
-        return redirect(url_for('login'))  # or a custom error page
+        return redirect(url_for('login'))  # 或自定义错误页面
 
-
-
-# 创建新日志（僅限登入用戶）
+# 创建新日志（仅限登录用户）
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
@@ -197,7 +196,7 @@ def create():
             logs_collection.insert_one({
                 'name': name,
                 'description': description,
-                'user_id': current_user.id  # 保存當前登入使用者的ID
+                'user_id': current_user.id  # 保存当前登录用户的ID
             })
             flash("Log created successfully!", "success")
             return redirect(url_for('index'))
@@ -212,20 +211,20 @@ def edit(log_id):
     try:
         log = logs_collection.find_one({'_id': ObjectId(log_id)})
         
-        # Check if log exists and if user is authorized
+        # 检查日志是否存在以及用户是否有权限
         if not log:
             flash("Log not found.", "error")
             return redirect(url_for('index'))
         
-        # Ensure `user_id` field exists or handle as needed
+        # 确保 `user_id` 字段存在或安全地处理
         log_user_id = str(log.get('user_id', ""))
 
-        # Allow edit only if current user is the owner or an admin
+        # 只有当前用户是所有者或管理员才能编辑
         if log_user_id != current_user.id and not current_user.is_admin:
             flash("You do not have permission to edit this log.", "error")
             return redirect(url_for('index'))
         
-        # Handle form submission
+        # 处理表单提交
         if request.method == 'POST':
             name = request.form.get('name', '').strip()
             description = request.form.get('description', '').strip()
@@ -239,7 +238,7 @@ def edit(log_id):
             else:
                 flash("Name and Description are required.", "error")
         
-        # Render edit page with the log details
+        # 渲染编辑页面，显示日志详情
         return render_template('edit.html', log=log)
     
     except Exception as e:
@@ -247,15 +246,15 @@ def edit(log_id):
         traceback.print_exc()
         flash("An error occurred while editing the log.", "error")
         return redirect(url_for('index'))
-    
-# 在delete函數中增加安全的user_id檢查
+
+# 在 delete 函数中增加安全的 user_id 检查
 @app.route('/delete/<log_id>', methods=['POST'])
 @login_required
 def delete(log_id):
     log = logs_collection.find_one({'_id': ObjectId(log_id)})
-    log_user_id = str(log.get('user_id', ""))  # 安全地獲取 user_id
+    log_user_id = str(log.get('user_id', ""))  # 安全地获取 user_id
     
-    # 增加檢查
+    # 增加检查
     if not log or (log_user_id != current_user.id and not current_user.is_admin):
         flash("You do not have permission to delete this log.", "error")
         return redirect(url_for('index'))
@@ -263,8 +262,6 @@ def delete(log_id):
     logs_collection.delete_one({'_id': ObjectId(log_id)})
     flash("Log deleted successfully.", "success")
     return redirect(url_for('index'))
-
-
 
 @app.route('/detail/<log_id>')
 def detail(log_id):
@@ -313,7 +310,7 @@ def dca():
         except Exception as e:
             print(f"Error in calculate_dca: {e}")
             traceback.print_exc()
-            error = "計算過程中發生錯誤，請重試。"
+            error = "计算过程中发生错误，请重试。"
             return render_template('dca.html', error=error)
 
         return render_template('dca_result.html',
@@ -336,7 +333,7 @@ def dca():
                            interval=last_interval, 
                            amount=last_amount)
 
-# 在 calculate_dca 函數中，對 Binance API 請求進行快取
+# 在 calculate_dca 函数中，对 Binance API 请求进行缓存
 def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     """计算定期定额投资回报"""
     symbol = 'BTCUSDT'
@@ -384,7 +381,7 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     start_time = int(start_date.timestamp() * 1000)
     end_time_ms = int((end_date + datetime.timedelta(days=1)).timestamp() * 1000) - 1
 
-    # 調用快取的 get_historical_data 函數
+    # 调用缓存的 get_historical_data 函数
     all_data = get_historical_data(symbol, '1d', start_time, end_time_ms)
     if not all_data:
         return 0, 0, 0, [], []
