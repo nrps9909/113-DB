@@ -79,26 +79,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <!-- 引入 Flatpickr -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <!-- 引入主題腳本 -->
-    <script>
-        flatpickr("#date-range", {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            maxDate: "today",
-            minDate: "2017-08-14",
-            defaultDate: "{{ date_range }}",
-            locale: {
-                rangeSeparator: " to "
-            },
-            altInput: true,
-            altFormat: "F j, Y",
-            onReady: function(selectedDates, dateStr, instance) {
-                instance.calendarContainer.style.width = "auto"; // 確保寬度適應內容
-            },
-            onPreCalendarPosition: function(instance) {
-                instance.calendarContainer.style.overflow = "visible"; // 修復裁切問題
-            }
-        });
-    </script>
+    <!-- 引入主 JavaScript 文件 -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

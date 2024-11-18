@@ -183,10 +183,17 @@ flatpickr("#date-range", {
     mode: "range",
     dateFormat: "Y-m-d",
     maxDate: "today",
-    onChange: function(selectedDates) {
-        if (selectedDates.length === 2) {
-            startDate = selectedDates[0];
-            endDate = selectedDates[1];
+    minDate: "2017-08-14",
+    defaultDate: "{{ date_range }}",
+    locale: {
+        rangeSeparator: " to "
+    },
+    altInput: true,
+    altFormat: "F j, Y",
+    appendTo: document.querySelector(".register-card"), // 将日期选择器附加到表单容器
+    onReady: function(selectedDates, dateStr, instance) {
+        if (instance.calendarContainer) {
+            instance.calendarContainer.style.width = "auto";
         }
     }
 });

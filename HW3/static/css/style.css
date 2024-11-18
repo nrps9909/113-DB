@@ -165,13 +165,15 @@ h1, h2, h5 {
     color: #ff00ff;
 }
 
-/* 日期選擇器樣式修正 */
+/* 日期選擇器樣式 */
 .flatpickr-calendar {
     background-color: #1a1a1a !important;
     color: #e0e0e0 !important;
     border: 1px solid #333 !important;
     font-family: 'Press Start 2P', 'Orbitron', sans-serif !important;
     box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+    z-index: 1050;
+    position: absolute;
 }
 
 .flatpickr-current-month {
@@ -234,6 +236,7 @@ h1, h2, h5 {
     border-radius: 10px;
     color: #e0e0e0;
     box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
+    position: relative;
 }
 
 /* 表单标题 */
