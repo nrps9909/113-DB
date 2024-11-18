@@ -23,7 +23,7 @@ app.secret_key = os.getenv('SECRET_KEY')  # 从环境变量中读取密钥
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "请登录以访问此页面。"
+login_manager.login_message = "Please log in to access this page."
 
 # 初始化缓存
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
@@ -239,6 +239,7 @@ def edit(log_id):
                 flash("Name and Description are required.", "error")
         
         # 渲染编辑页面，显示日志详情
+        log = Log.objects.get_or_404(id=log_id)
         return render_template('edit.html', log=log)
     
     except Exception as e:
@@ -270,6 +271,7 @@ def detail(log_id):
     if not log:
         flash("Log not found", "error")
         return redirect(url_for('index'))
+    log = Log.objects.get_or_404(id=log_id)
     return render_template('detail.html', log=log)
 
 @app.route('/dca', methods=['GET', 'POST'])
@@ -285,7 +287,7 @@ def dca():
         session['last_amount'] = amount
 
         if not date_range or not interval or not amount:
-            error = "所有字段都是必填的。"
+            error = "All fields are required."
             return render_template('dca.html', error=error)
 
         try:
@@ -310,7 +312,7 @@ def dca():
         except Exception as e:
             print(f"Error in calculate_dca: {e}")
             traceback.print_exc()
-            error = "计算过程中发生错误，请重试。"
+            error = "An error occurred during calculation. Please try again."
             return render_template('dca.html', error=error)
 
         return render_template('dca_result.html',
