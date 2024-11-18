@@ -209,14 +209,13 @@ def create():
 @login_required
 def edit(log_id):
     try:
-        # 將 ObjectId 轉換為字符串
         log = logs_collection.find_one({'_id': ObjectId(log_id)})
-        if log:
-            log['_id'] = str(log['_id'])
-        
         if not log:
             flash("Log not found.", "error")
             return redirect(url_for('index'))
+        
+        # 將 log['_id'] 轉換為字串
+        log['_id'] = str(log['_id'])
         
         # 确保 `user_id` 字段存在或安全地处理
         log_user_id = str(log.get('user_id', ""))
@@ -243,6 +242,7 @@ def edit(log_id):
         # 渲染编辑页面
         return render_template('edit.html', log=log)
     
+    except Exception as e:
     except Exception as e:
         print(f"Error in edit function: {e}")
         traceback.print_exc()
