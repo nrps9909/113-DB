@@ -126,7 +126,7 @@ h1, h2, h5 {
     background-color: #1a1a1a;
     color: #e0e0e0;
     border-color: #ff00ff;
-    box-shadow: 0 0 10px #ff00ff, inset 0 0 10px #ff00ff;
+    box-shadow: 0 0 5px #ff00ff, inset 0 0 5px #ff00ff; /* 減弱光暈強度 */
 }
 
 /* Date Picker Styles */
@@ -147,14 +147,14 @@ h1, h2, h5 {
     gap: 10px;
     font-size: 1em;
     padding: 5px 10px;
-    background-color: #2b2b2b !important;
-    color: #00ffff !important;
+    background-color: #2b2b2b;
+    color: #00ffff;
     text-transform: uppercase;
     border-bottom: 1px solid #333;
 }
 
 .flatpickr-day {
-    background-color: #1a1a1a !important;
+    background-color: #2b2b2b !important;
     border: 1px solid #333 !important;
     color: #e0e0e0 !important;
     border-radius: 5px;
@@ -171,6 +171,26 @@ h1, h2, h5 {
     background-color: #ff00ff !important;
     color: #0d0d0d !important;
     box-shadow: 0 0 10px #ff00ff;
+}
+
+/* 修改日期選擇器的顏色欄位 */
+.flatpickr-months .flatpickr-month {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+}
+
+.flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month {
+    color: #e0e0e0 !important;
+}
+
+.flatpickr-months .flatpickr-monthDropdown-months, .flatpickr-months .flatpickr-monthDropdown-years {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #333 !important;
+}
+
+.flatpickr-months .flatpickr-monthDropdown-months:hover, .flatpickr-months .flatpickr-monthDropdown-years:hover {
+    background-color: #2b2b2b !important;
 }
 
 /* Result Page Styles */
