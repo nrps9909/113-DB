@@ -345,7 +345,7 @@ def dca():
 
 # 在 calculate_dca 函数中，对 Binance API 请求进行缓存
 def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
-    """计算定期定额投资回报"""
+    """計算定期定額投資回報"""
     symbol = 'BTCUSDT'
     try:
         start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d')
@@ -391,7 +391,7 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     start_time = int(start_date.timestamp() * 1000)
     end_time_ms = int((end_date + datetime.timedelta(days=1)).timestamp() * 1000) - 1
 
-    # 调用缓存的 get_historical_data 函数
+    # 調用緩存的 get_historical_data 函數
     all_data = get_historical_data(symbol, '1d', start_time, end_time_ms)
     if not all_data:
         return 0, 0, 0, [], []
