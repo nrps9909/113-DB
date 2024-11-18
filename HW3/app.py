@@ -11,14 +11,14 @@ import traceback
 import datetime
 import os
 from dotenv import load_dotenv
-from flask_caching import Cache  # 添加缓存套件
+from flask_caching import Cache
 import time
 
 # 加载环境变量
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')  # 从环境变量中读取密钥
+app.secret_key = os.getenv('SECRET_KEY')
 
 # 设置加密和登录管理
 bcrypt = Bcrypt(app)
@@ -28,7 +28,6 @@ login_manager.login_message = "请登录以访问此页面。"
 
 # 初始化缓存
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
-# 可调整 CACHE_DEFAULT_TIMEOUT 以设置默认的缓存时间
 
 # MongoDB 连接
 MONGO_URI = os.getenv("MONGODB_URI")
@@ -41,7 +40,8 @@ lock_collection = db['locks']  # 用于管理锁的集合
 
 # 创建索引以提高查询性能
 price_collection.create_index([('symbol', 1), ('interval', 1), ('timestamp', 1)], unique=True)
-lock_collection.create_index([('_id', 1)], unique=True)
+# 移除对 '_id' 的索引创建，因为 MongoDB 自动对 '_id' 进行唯一索引
+# lock_collection.create_index([('_id', 1)], unique=True)
 
 # 创建管理员账号
 admin_account = users_collection.find_one({'username': 'admin'})
@@ -127,7 +127,7 @@ def logout():
 
 def get_bitcoin_price_from_db():
     """从数据库获取最新的比特币价格"""
-    latest_price = price_collection.find_one({'symbol': 'BTCUSDT'}, sort=[('timestamp', -1)])
+    latest_price = price_collection.find_one({'symbol': 'BTCUSDT', 'interval': 'real-time'}, sort=[('timestamp', -1)])
     if latest_price:
         # 检查数据是否在1分钟内
         time_diff = datetime.datetime.utcnow() - latest_price['timestamp']
@@ -170,13 +170,12 @@ def get_bitcoin_price():
 
 def acquire_lock(key):
     """获取锁以防止并发数据获取"""
-    lock = lock_collection.find_one_and_update(
-        {'_id': key},
-        {'$setOnInsert': {'locked': True}},
-        upsert=True,
-        return_document=ReturnDocument.BEFORE
-    )
-    return lock is None
+    try:
+        lock = lock_collection.insert_one({'_id': key, 'locked': True, 'timestamp': datetime.datetime.utcnow()})
+        return True
+    except Exception:
+        # 如果插入失败，表示锁已存在
+        return False
 
 def release_lock(key):
     """释放锁"""
