@@ -217,15 +217,15 @@ def edit(log_id):
         # 將 log['_id'] 轉換為字串
         log['_id'] = str(log['_id'])
         
-        # 确保 `user_id` 字段存在或安全地处理
+        # 確保 `user_id` 字段存在或安全地處理
         log_user_id = str(log.get('user_id', ""))
 
-        # 只有当前用户是所有者或管理员才能编辑
+        # 只有當前用戶是所有者或管理員才能編輯
         if log_user_id != current_user.id and not current_user.is_admin:
             flash("You do not have permission to edit this log.", "error")
             return redirect(url_for('index'))
         
-        # 处理表单提交
+        # 處理表單提交
         if request.method == 'POST':
             name = request.form.get('name', '').strip()
             description = request.form.get('description', '').strip()
@@ -239,14 +239,31 @@ def edit(log_id):
             else:
                 flash("Name and Description are required.", "error")
         
-        # 渲染编辑页面
+        # 渲染編輯頁面
         return render_template('edit.html', log=log)
     
-    except Exception as e:
     except Exception as e:
         print(f"Error in edit function: {e}")
         traceback.print_exc()
         flash("An error occurred while editing the log.", "error")
+        return redirect(url_for('index'))
+
+@app.route('/detail/<log_id>')
+def detail(log_id):
+    try:
+        log = logs_collection.find_one({'_id': ObjectId(log_id)})
+        if not log:
+            flash("Log not found", "error")
+            return redirect(url_for('index'))
+        
+        # 將 log['_id'] 轉換為字串
+        log['_id'] = str(log['_id'])
+        return render_template('detail.html', log=log)
+    
+    except Exception as e:
+        print(f"Error in detail function: {e}")
+        traceback.print_exc()
+        flash("An error occurred while viewing the log.", "error")
         return redirect(url_for('index'))
 
 # 在 delete 函数中增加安全的 user_id 检查
@@ -264,25 +281,6 @@ def delete(log_id):
     logs_collection.delete_one({'_id': ObjectId(log_id)})
     flash("Log deleted successfully.", "success")
     return redirect(url_for('index'))
-
-@app.route('/detail/<log_id>')
-def detail(log_id):
-    try:
-        # 將 ObjectId 轉換為字符串
-        log = logs_collection.find_one({'_id': ObjectId(log_id)})
-        if log:
-            log['_id'] = str(log['_id'])
-        
-        if not log:
-            flash("Log not found", "error")
-            return redirect(url_for('index'))
-            
-        return render_template('detail.html', log=log)
-    except Exception as e:
-        print(f"Error in detail function: {e}")
-        traceback.print_exc()
-        flash("An error occurred while viewing the log.", "error")
-        return redirect(url_for('index'))
 
 @app.route('/dca', methods=['GET', 'POST'])
 def dca():
