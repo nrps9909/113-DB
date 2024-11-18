@@ -1,24 +1,28 @@
 /* Basic Styles */
 body {
-    background-color: #0a0a0a;
+    background-color: #0d0d0d;
+    background-image: radial-gradient(circle at center, #0d0d0d, #000000 70%);
     color: #00ffff;
     font-family: 'Press Start 2P', 'Orbitron', sans-serif;
 }
 
 h1, h2, h5 {
     color: #ff00ff;
-    text-shadow: 0 0 5px #ff00ff;
+    text-shadow: 0 0 5px #ff00ff, 0 0 20px #ff00ff;
+    animation: neon-flicker 1.5s infinite alternate;
 }
 
 /* Navbar Styles */
 .navbar {
     background-color: #0d0d0d;
     border-bottom: 2px solid #ff00ff;
+    box-shadow: 0 0 10px #ff00ff;
 }
 
 .navbar-brand {
     color: #ff00ff !important;
     font-size: 1.5em;
+    text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
 }
 
 /* Button Styles */
@@ -29,25 +33,28 @@ h1, h2, h5 {
 
 /* btn-cyberpunk Style */
 .btn-cyberpunk {
-    background-color: transparent;
-    border: 2px solid #ff00ff;
-    color: #ff00ff;
+    background-color: #000;
+    border: 2px solid #00ffff;
+    color: #00ffff;
     font-weight: bold;
     position: relative;
     overflow: hidden;
     text-transform: uppercase;
     transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    z-index: 1;
+    box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
 }
 
 .btn-cyberpunk::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(120deg, transparent, rgba(255, 0, 255, 0.4), transparent);
-    transition: all 650ms;
+    top: -2px;
+    left: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+    z-index: -1;
+    transition: all 0.5s ease;
 }
 
 .btn-cyberpunk:hover::before {
@@ -55,9 +62,9 @@ h1, h2, h5 {
 }
 
 .btn-cyberpunk:hover {
-    color: #0a0a0a;
-    background-color: #ff00ff;
-    box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px rgba(255, 0, 255, 0.5);
+    color: #0d0d0d;
+    background-color: #00ffff;
+    box-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff;
 }
 
 /* Other Button Styles */
@@ -112,22 +119,23 @@ h1, h2, h5 {
     background-color: #1a1a1a;
     border: 1px solid #333;
     color: #00ffff;
+    box-shadow: inset 0 0 10px #00ffff;
 }
 
 .form-control:focus, .form-select:focus {
     background-color: #1a1a1a;
     color: #e0e0e0;
     border-color: #ff00ff;
-    box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
+    box-shadow: 0 0 10px #ff00ff, inset 0 0 10px #ff00ff;
 }
 
 /* Date Picker Styles */
 .flatpickr-calendar {
     background-color: #1a1a1a !important;
     color: #e0e0e0 !important;
-    border: 1px solid #333 !important;
+    border: 1px solid #ff00ff !important;
     font-family: 'Press Start 2P', 'Orbitron', sans-serif !important;
-    box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+    box-shadow: 0 0 20px #ff00ff;
     z-index: 1050;
     position: absolute;
 }
@@ -154,18 +162,20 @@ h1, h2, h5 {
 }
 
 .flatpickr-day:hover {
-    background-color: #333 !important;
+    background-color: #ff00ff !important;
     transform: scale(1.1);
+    box-shadow: 0 0 10px #ff00ff;
 }
 
 .flatpickr-day.selected {
     background-color: #ff00ff !important;
     color: #0d0d0d !important;
+    box-shadow: 0 0 10px #ff00ff;
 }
 
 /* Result Page Styles */
 .result-container {
-    background-color: #1a1a1a;
+    background: rgba(13, 13, 13, 0.8);
     padding: 20px;
     border-radius: 10px;
     color: #e0e0e0;
@@ -174,6 +184,9 @@ h1, h2, h5 {
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.5s ease, transform 0.5s ease;
+    backdrop-filter: blur(5px);
+    border: 1px solid #ff00ff;
+    box-shadow: 0 0 20px #ff00ff;
 }
 
 .result-container.active {
@@ -183,15 +196,16 @@ h1, h2, h5 {
 
 /* Card Styles */
 .register-card, .login-card {
-    background-color: #0d0d0d;
-    border: 1px solid #333;
+    background: rgba(13, 13, 13, 0.8);
+    border: 1px solid #ff00ff;
     border-radius: 10px;
     color: #e0e0e0;
-    box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
+    box-shadow: 0 0 20px #ff00ff;
     position: relative;
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.5s ease, transform 0.5s ease;
+    backdrop-filter: blur(5px);
 }
 
 .register-card.active, .login-card.active {
@@ -203,11 +217,12 @@ h1, h2, h5 {
 a {
     color: #00ffff;
     text-decoration: none;
+    text-shadow: 0 0 5px #00ffff;
 }
 
 a:hover {
     color: #ff00ff;
-    text-shadow: 0 0 5px #ff00ff;
+    text-shadow: 0 0 10px #ff00ff;
 }
 
 /* Scrollbar Styles */
@@ -220,7 +235,7 @@ a:hover {
     background: linear-gradient(180deg, #ff00ff, #00ffff, #ff00ff);
     border-radius: 5px;
     border: 2px solid #1a1a1a;
-    box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+    box-shadow: 0 0 10px #ff00ff;
 }
 
 /* Responsive Styles */
@@ -237,5 +252,15 @@ a:hover {
     .register-card, .result-container {
         padding: 15px;
         margin: 10px;
+    }
+}
+
+/* 新增動畫效果 */
+@keyframes neon-flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        opacity: 1;
+    }
+    20%, 24%, 55% {
+        opacity: 0.5;
     }
 }
