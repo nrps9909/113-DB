@@ -1,8 +1,8 @@
-/* 基本样式 */
+/* Basic Styles */
 body {
-    background-color: #0a0a0a; /* 更深的背景色 */
-    color: #00ffff; /* 賽博龐克的霓虹藍 */
-    font-family: 'Press Start 2P', 'Orbitron', sans-serif; /* 更新字體 */
+    background-color: #0a0a0a;
+    color: #00ffff;
+    font-family: 'Press Start 2P', 'Orbitron', sans-serif;
 }
 
 h1, h2, h5 {
@@ -10,32 +10,32 @@ h1, h2, h5 {
     text-shadow: 0 0 5px #ff00ff;
 }
 
-/* 导航栏样式 */
+/* Navbar Styles */
 .navbar {
     background-color: #0d0d0d;
-    border-bottom: 2px solid #ff00ff; /* 霓虹紫色邊框 */
+    border-bottom: 2px solid #ff00ff;
 }
 
 .navbar-brand {
-    color: #ff00ff !important; /* 霓虹紫色文字 */
+    color: #ff00ff !important;
     font-size: 1.5em;
 }
 
-/* 通用按钮样式 */
+/* Button Styles */
 .btn-cyberpunk, .btn-primary, .btn-secondary, .range-btn, .btn-info, .btn-warning, .btn-danger {
     font-family: 'Orbitron', sans-serif;
     transition: background-color 0.3s, color 0.3s;
 }
 
-/* btn-cyberpunk 样式 */
+/* btn-cyberpunk Style */
 .btn-cyberpunk {
     background-color: transparent;
-    border: 2px solid #ff00ff; /* 霓虹紫色邊框 */
+    border: 2px solid #ff00ff;
     color: #ff00ff;
     font-weight: bold;
     position: relative;
     overflow: hidden;
-    text-transform: uppercase; /* 按鈕文字大寫風格 */
+    text-transform: uppercase;
     transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -60,7 +60,7 @@ h1, h2, h5 {
     box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px rgba(255, 0, 255, 0.5);
 }
 
-/* 其他按钮样式 */
+/* Other Button Styles */
 .btn-primary {
     background-color: #ff00ff;
     border: none;
@@ -93,7 +93,7 @@ h1, h2, h5 {
     color: #0d0d0d;
 }
 
-/* 日志管理按钮 */
+/* Log Management Buttons */
 .btn-info { background-color: #00ffff; color: #0d0d0d; }
 .btn-warning { background-color: #ffff00; color: #0d0d0d; }
 .btn-danger { background-color: #ff0000; color: #0d0d0d; }
@@ -102,7 +102,7 @@ h1, h2, h5 {
 .btn-warning:hover { background-color: #cccc00; }
 .btn-danger:hover { background-color: #cc0000; }
 
-/* 表单样式 */
+/* Form Styles */
 .form-label {
     color: #e0e0e0;
     font-weight: bold;
@@ -121,53 +121,7 @@ h1, h2, h5 {
     box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
 }
 
-/* 实时价格样式 */
-#price {
-    font-weight: bold;
-    font-size: 3em;
-    color: #00ff00;
-    transition: color 0.3s ease, font-size 0.3s ease, transform 0.3s ease;
-}
-
-.price-up {
-    color: #00ff00;
-    transform: scale(1.1);
-}
-
-.price-down {
-    color: #ff0000;
-    transform: scale(0.9);
-}
-
-/* 图表容器样式 */
-#investmentChart {
-    background-color: #1a1a1a;
-    border: 1px solid #333;
-    padding: 10px;
-    border-radius: 5px;
-    width: 100% !important;
-    max-width: 900px;
-    height: 500px !important;
-}
-
-/* 加载指示器样式 */
-#loading {
-    color: #00ffff;
-}
-
-/* 日志列表样式 */
-.list-group-item {
-    background-color: #1a1a1a;
-    border: 1px solid #333;
-    color: #e0e0e0;
-    margin-bottom: 10px;
-}
-
-.list-group-item h5 {
-    color: #ff00ff;
-}
-
-/* 日期選擇器樣式 */
+/* Date Picker Styles */
 .flatpickr-calendar {
     background-color: #1a1a1a !important;
     color: #e0e0e0 !important;
@@ -209,7 +163,7 @@ h1, h2, h5 {
     color: #0d0d0d !important;
 }
 
-/* 结果页面样式 */
+/* Result Page Styles */
 .result-container {
     background-color: #1a1a1a;
     padding: 20px;
@@ -227,7 +181,7 @@ h1, h2, h5 {
     transform: translateY(0);
 }
 
-/* 卡片样式 */
+/* Card Styles */
 .register-card, .login-card {
     background-color: #0d0d0d;
     border: 1px solid #333;
@@ -245,7 +199,7 @@ h1, h2, h5 {
     transform: translateY(0);
 }
 
-/* 链接样式 */
+/* Link Styles */
 a {
     color: #00ffff;
     text-decoration: none;
@@ -256,7 +210,7 @@ a:hover {
     text-shadow: 0 0 5px #ff00ff;
 }
 
-/* 更新滾動條樣式 */
+/* Scrollbar Styles */
 ::-webkit-scrollbar {
     width: 10px;
     background-color: #1a1a1a;
@@ -269,16 +223,7 @@ a:hover {
     box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
 }
 
-/* 链接样式 */
-.text-info {
-    color: #00ffff !important;
-}
-
-.text-info:hover {
-    color: #00cccc !important;
-}
-
-/* 響應式樣式 */
+/* Responsive Styles */
 @media (max-width: 768px) {
     .navbar-brand {
         font-size: 1.2em;
