@@ -38,7 +38,7 @@
         {% endwith %}
     </div>
 
-    <div class="container mt-5">
+    <div class="container mt-5 cyberpunk-container">
         <h1 class="text-center mb-4">Real-time Bitcoin Price</h1>
         <div id="price" class="display-4 text-center">${{ bitcoin_price }}</div>
 
@@ -68,7 +68,7 @@
         <h2 class="mt-5">Bitcoin Logs</h2>
         <div class="list-group">
             {% for log in logs %}
-            <div class="list-group-item">
+            <div class="list-group-item cyberpunk-log-item">
                 <h5>{{ log.name }}</h5>
                 <p>{{ log.description }}</p>
                 <a href="{{ url_for('detail', log_id=log._id) }}" class="btn btn-info btn-sm">Details</a>

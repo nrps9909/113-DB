@@ -255,6 +255,27 @@ a:hover {
     }
 }
 
+/* Log Item Styles */
+.cyberpunk-log-item {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    margin-bottom: 10px;
+    box-shadow: 0 0 10px #ff00ff;
+}
+
+.cyberpunk-log-item h5 {
+    color: #ff00ff;
+}
+
+.cyberpunk-log-item p {
+    color: #00ffff;
+}
+
+.cyberpunk-log-item .btn {
+    margin-right: 5px;
+}
+
 /* 新增動畫效果 */
 @keyframes neon-flicker {
     0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
