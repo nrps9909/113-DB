@@ -238,8 +238,7 @@ def edit(log_id):
             else:
                 flash("Name and Description are required.", "error")
         
-        # 渲染编辑页面，显示日志详情
-        log = Log.objects.get_or_404(id=log_id)
+        # 渲染编辑页面
         return render_template('edit.html', log=log)
     
     except Exception as e:
@@ -271,7 +270,6 @@ def detail(log_id):
     if not log:
         flash("Log not found", "error")
         return redirect(url_for('index'))
-    log = Log.objects.get_or_404(id=log_id)
     return render_template('detail.html', log=log)
 
 @app.route('/dca', methods=['GET', 'POST'])
