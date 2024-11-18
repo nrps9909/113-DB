@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
-from pymongo import MongoClient, UpdateOne, ReturnDocument
+from pymongo import MongoClient
 from bson.objectid import ObjectId
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -11,14 +11,13 @@ import traceback
 import datetime
 import os
 from dotenv import load_dotenv
-from flask_caching import Cache
-import time
+from flask_caching import Cache  # 添加缓存套件
 
 # 加载环境变量
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = os.getenv('SECRET_KEY')  # 从环境变量中读取密钥
 
 # 设置加密和登录管理
 bcrypt = Bcrypt(app)
@@ -28,6 +27,7 @@ login_manager.login_message = "请登录以访问此页面。"
 
 # 初始化缓存
 cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
+# 可调整 CACHE_DEFAULT_TIMEOUT 以设置默认的缓存时间
 
 # MongoDB 连接
 MONGO_URI = os.getenv("MONGODB_URI")
@@ -35,13 +35,6 @@ client = MongoClient(MONGO_URI)
 db = client['my_database']  # 替换成你的数据库名称
 users_collection = db['users']  # 用户数据的集合
 logs_collection = db['startup_log']  # 日志数据的集合
-price_collection = db['price_data']  # 用于存储价格数据的集合
-lock_collection = db['locks']  # 用于管理锁的集合
-
-# 创建索引以提高查询性能
-price_collection.create_index([('symbol', 1), ('interval', 1), ('timestamp', 1)], unique=True)
-# 移除对 '_id' 的索引创建，因为 MongoDB 自动对 '_id' 进行唯一索引
-# lock_collection.create_index([('_id', 1)], unique=True)
 
 # 创建管理员账号
 admin_account = users_collection.find_one({'username': 'admin'})
@@ -125,190 +118,57 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for('index'))
 
-def get_bitcoin_price_from_db():
-    """从数据库获取最新的比特币价格"""
-    latest_price = price_collection.find_one({'symbol': 'BTCUSDT', 'interval': 'real-time'}, sort=[('timestamp', -1)])
-    if latest_price:
-        # 检查数据是否在1分钟内
-        time_diff = datetime.datetime.utcnow() - latest_price['timestamp']
-        if time_diff.total_seconds() < 60:
-            return latest_price['price']
-    return None
-
-def save_bitcoin_price_to_db(price):
-    """将最新的比特币价格保存到数据库"""
-    price_collection.insert_one({
-        'symbol': 'BTCUSDT',
-        'interval': 'real-time',
-        'timestamp': datetime.datetime.utcnow(),
-        'price': price
-    })
-
+@cache.cached(timeout=60)
 def get_bitcoin_price():
-    """获取实时比特币价格，优先从数据库获取"""
-    price = get_bitcoin_price_from_db()
-    if price is not None:
-        return price
-    else:
-        # 如果数据库中没有最新价格，调用 API 获取
-        url = f'{BASE_URL}/api/v3/ticker/price'
-        params = {'symbol': 'BTCUSDT'}
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        proxies = {"http": None, "https": None}
+    """获取实时比特币价格"""
+    url = f'{BASE_URL}/api/v3/ticker/price'
+    params = {'symbol': 'BTCUSDT'}
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    proxies = {"http": None, "https": None}
 
-        try:
-            response = requests.get(url, params=params, headers=headers, proxies=proxies, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-            price = float(data['price'])
-            save_bitcoin_price_to_db(price)
-            return price
-        except requests.exceptions.RequestException as e:
-            print(f"Failed to retrieve Bitcoin price: {e}")
-            traceback.print_exc()
-            return 0  # 返回数字 0，避免返回字符串引发后续问题
-
-def acquire_lock(key):
-    """获取锁以防止并发数据获取"""
     try:
-        lock = lock_collection.insert_one({'_id': key, 'locked': True, 'timestamp': datetime.datetime.utcnow()})
-        return True
-    except Exception:
-        # 如果插入失败，表示锁已存在
-        return False
+        response = requests.get(url, params=params, headers=headers, proxies=proxies, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        price = float(data['price'])
+        return price
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to retrieve Bitcoin price: {e}")
+        traceback.print_exc()
+        return 0  # 修改此处以返回数字 0，避免返回字符串引发后续问题
 
-def release_lock(key):
-    """释放锁"""
-    lock_collection.delete_one({'_id': key})
+# 新增一个独立的 get_historical_data 函数，并添加缓存
+@cache.memoize(timeout=3600)  # 缓存 1 小时，可根据需要调整
+def get_historical_data(symbol, interval, start_time, end_time_ms):
+    """获取历史数据，并进行缓存"""
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    proxies = {"http": None, "https": None}
+    all_data = []
+    limit = 1000
+    current_start_time = start_time
 
-def get_historical_data_from_db(symbol, interval, start_time, end_time_ms):
-    """从数据库获取历史数据"""
-    start_datetime = datetime.datetime.fromtimestamp(start_time / 1000)
-    end_datetime = datetime.datetime.fromtimestamp(end_time_ms / 1000)
-
-    data = price_collection.find({
-        'symbol': symbol,
-        'interval': interval,
-        'timestamp': {'$gte': start_datetime, '$lte': end_datetime}
-    }).sort('timestamp', 1)
-
-    return list(data)
-
-def save_historical_data_to_db(symbol, interval, data):
-    """将历史数据保存到数据库，使用批量操作"""
-    bulk_operations = []
-    for item in data:
-        timestamp = datetime.datetime.fromtimestamp(item[0] / 1000)
-        price_entry = {
+    while current_start_time < end_time_ms:
+        params = {
             'symbol': symbol,
             'interval': interval,
-            'timestamp': timestamp,
-            'open': float(item[1]),
-            'high': float(item[2]),
-            'low': float(item[3]),
-            'close': float(item[4]),
-            'volume': float(item[5])
+            'startTime': current_start_time,
+            'endTime': end_time_ms,
+            'limit': limit
         }
-        bulk_operations.append(
-            UpdateOne(
-                {'symbol': symbol, 'interval': interval, 'timestamp': timestamp},
-                {'$set': price_entry},
-                upsert=True
-            )
-        )
-    if bulk_operations:
-        price_collection.bulk_write(bulk_operations)
+        try:
+            response = requests.get(f'{BASE_URL}/api/v3/klines', params=params, headers=headers, proxies=proxies, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if not data:
+                break
+            all_data.extend(data)
+            current_start_time = data[-1][0] + 1
+        except requests.exceptions.RequestException as e:
+            print("API request error:", e)
+            traceback.print_exc()
+            return []
 
-def get_historical_data(symbol, interval, start_time, end_time_ms):
-    """获取历史数据，先从数据库获取，缺失的数据从 API 获取"""
-    start_datetime = datetime.datetime.fromtimestamp(start_time / 1000)
-    end_datetime = datetime.datetime.fromtimestamp(end_time_ms / 1000)
-
-    # 获取已有的数据
-    existing_data = price_collection.find({
-        'symbol': symbol,
-        'interval': interval,
-        'timestamp': {'$gte': start_datetime, '$lte': end_datetime}
-    }, {'_id': 0, 'timestamp': 1})
-
-    existing_dates = set([data['timestamp'].date() for data in existing_data])
-
-    # 生成所有需要的数据日期集合
-    required_dates = set()
-    current_date = start_datetime.date()
-    end_date = end_datetime.date()
-    while current_date <= end_date:
-        required_dates.add(current_date)
-        current_date += datetime.timedelta(days=1)
-
-    # 找出缺失的日期
-    missing_dates = required_dates - existing_dates
-
-    if missing_dates:
-        lock_key = f"{symbol}_{interval}_{start_time}_{end_time_ms}"
-        if acquire_lock(lock_key):
-            try:
-                # 将缺失的日期转换为时间戳范围
-                missing_ranges = []
-                for date in missing_dates:
-                    start_ts = int(datetime.datetime.combine(date, datetime.datetime.min.time()).timestamp() * 1000)
-                    end_ts = start_ts + 86399999  # 一天的毫秒数减1
-                    missing_ranges.append((start_ts, end_ts))
-
-                headers = {'User-Agent': 'Mozilla/5.0'}
-                proxies = {"http": None, "https": None}
-                all_data = []
-                limit = 1000
-
-                for start_ts, end_ts in missing_ranges:
-                    params = {
-                        'symbol': symbol,
-                        'interval': interval,
-                        'startTime': start_ts,
-                        'endTime': end_ts,
-                        'limit': limit
-                    }
-                    try:
-                        response = requests.get(f'{BASE_URL}/api/v3/klines', params=params, headers=headers, proxies=proxies, timeout=10)
-                        response.raise_for_status()
-                        data = response.json()
-                        if data:
-                            all_data.extend(data)
-                    except requests.exceptions.RequestException as e:
-                        print("API request error:", e)
-                        traceback.print_exc()
-                        continue  # 跳过当前日期
-
-                # 保存获取的数据到数据库
-                if all_data:
-                    save_historical_data_to_db(symbol, interval, all_data)
-            finally:
-                release_lock(lock_key)
-        else:
-            # 等待数据被其他进程获取
-            while lock_collection.find_one({'_id': lock_key}):
-                time.sleep(0.5)
-
-    # 从数据库中获取完整的数据
-    full_data = price_collection.find({
-        'symbol': symbol,
-        'interval': interval,
-        'timestamp': {'$gte': start_datetime, '$lte': end_datetime}
-    }).sort('timestamp', 1)
-
-    # 转换为所需的格式
-    result_data = []
-    for item in full_data:
-        result_data.append([
-            int(item['timestamp'].timestamp() * 1000),  # 开始时间
-            str(item['open']),
-            str(item['high']),
-            str(item['low']),
-            str(item['close']),
-            str(item['volume'])
-        ])
-
-    return result_data
+    return all_data
 
 @app.route('/')
 def index():
@@ -473,6 +333,7 @@ def dca():
                            interval=last_interval, 
                            amount=last_amount)
 
+# 在 calculate_dca 函数中，对 Binance API 请求进行缓存
 def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     """计算定期定额投资回报"""
     symbol = 'BTCUSDT'
@@ -520,11 +381,9 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
     start_time = int(start_date.timestamp() * 1000)
     end_time_ms = int((end_date + datetime.timedelta(days=1)).timestamp() * 1000) - 1
 
-    # 获取历史数据
+    # 调用缓存的 get_historical_data 函数
     all_data = get_historical_data(symbol, '1d', start_time, end_time_ms)
-    if not all_data or len(all_data) < len(investment_dates):
-        print("Not all data was retrieved. Please try again later.")
-        flash("数据正在加载，请稍后重试。", "error")
+    if not all_data:
         return 0, 0, 0, [], []
 
     date_price_map = {}
@@ -544,7 +403,7 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
         else:
             print(f"No data for date: {investment_date.strftime('%Y-%m-%d')}")
             investment_dates_formatted.append(investment_date.strftime('%Y-%m-%d'))
-            investment_values.append(round(total_btc * (price if price else 0), 2))
+            investment_values.append(round(total_btc * price if price else 0, 2))
 
     current_price = get_bitcoin_price()
     if isinstance(current_price, str):
@@ -561,26 +420,35 @@ def bitcoin_historical_data():
     end_time = request.args.get('endTime')
 
     symbol = 'BTCUSDT'
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    proxies = {"http": None, "https": None}
 
-    # 转换时间戳为整数
-    start_time = int(start_time)
-    end_time = int(end_time)
+    params = {
+        'symbol': symbol,
+        'interval': interval,
+        'startTime': start_time,
+        'endTime': end_time,
+        'limit': 1000
+    }
 
-    # 获取历史数据
-    all_data = get_historical_data(symbol, interval, start_time, end_time)
-    if not all_data:
+    try:
+        response = requests.get(f'{BASE_URL}/api/v3/klines', params=params, headers=headers, proxies=proxies, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        prices = []
+        for item in data:
+            prices.append({
+                'x': item[0],
+                'o': float(item[1]),
+                'h': float(item[2]),
+                'l': float(item[3]),
+                'c': float(item[4])
+            })
+        return jsonify({'prices': prices})
+    except requests.exceptions.RequestException as e:
+        print("API request error:", e)
+        traceback.print_exc()
         return jsonify({'error': 'Unable to fetch data'}), 500
-
-    prices = []
-    for item in all_data:
-        prices.append({
-            'x': item[0],
-            'o': float(item[1]),
-            'h': float(item[2]),
-            'l': float(item[3]),
-            'c': float(item[4])
-        })
-    return jsonify({'prices': prices})
 
 @app.route('/api/bitcoin-price')
 def bitcoin_price_api():
