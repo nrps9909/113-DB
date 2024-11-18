@@ -6,7 +6,7 @@ const rangeButtons = document.querySelectorAll('.range-btn');
 const customRangePicker = document.getElementById('custom-range-picker');
 const fetchCustomDataButton = document.getElementById('fetch-custom-data');
 
-// 使用箭頭函數和模板字串優化代碼
+// 更新價格的函數
 const updatePrice = (newPrice) => {
     const currentPrice = parseFloat(priceElement.textContent.replace('$', '')) || 0;
     priceElement.textContent = `$${newPrice.toFixed(2)}`;
@@ -18,7 +18,7 @@ const updatePrice = (newPrice) => {
     }
 };
 
-// 使用 fetch API 簡化 AJAX 請求
+// 獲取比特幣價格
 const fetchBitcoinPrice = () => {
     fetch('/api/bitcoin-price')
         .then(response => response.json())
@@ -33,9 +33,9 @@ const fetchBitcoinPrice = () => {
 
 // 初次获取价格
 fetchBitcoinPrice();
-setInterval(fetchBitcoinPrice, 10000); // 每秒更新价格
+setInterval(fetchBitcoinPrice, 10000); // 每10秒更新价格
 
-// 初始化 K 线图
+// 初始化 K 線圖
 Chart.defaults.color = '#e0e0e0';
 Chart.defaults.font.family = 'Orbitron, sans-serif';
 
@@ -79,7 +79,7 @@ let klineChart = new Chart(ctx, {
     }
 });
 
-// 获取并更新图表数据
+// 獲取並更新圖表數據
 function fetchData(range, startDate = null, endDate = null) {
     const intervalMapping = {
         '1d': '3m',
@@ -135,8 +135,13 @@ function fetchData(range, startDate = null, endDate = null) {
     });
 }
 
-// 更新图表数据
+// 更新圖表數據
 function updateChart(prices) {
+    if (!prices || prices.length === 0) {
+        console.warn("No data available to update the chart.");
+        return;
+    }
+
     const chartData = prices.map(item => ({
         x: item.x,
         o: item.o,
@@ -165,7 +170,7 @@ function updateChart(prices) {
     klineChart.update();
 }
 
-// 确定合适的时间间隔
+// 確定合適的時間間隔
 function determineInterval(startTime, endTime) {
     const diff = endTime - startTime;
     const day = 24 * 60 * 60 * 1000;
@@ -184,21 +189,21 @@ flatpickr("#date-range", {
     dateFormat: "Y-m-d",
     maxDate: "today",
     minDate: "2017-08-14",
-    defaultDate: "{{ date_range }}",
     locale: {
         rangeSeparator: " to "
     },
     altInput: true,
     altFormat: "F j, Y",
-    appendTo: document.querySelector(".register-card"), // 将日期选择器附加到表单容器
-    onReady: function(selectedDates, dateStr, instance) {
-        if (instance.calendarContainer) {
-            instance.calendarContainer.style.width = "auto";
+    appendTo: document.querySelector(".register-card"),
+    onChange: function (selectedDates) {
+        if (selectedDates.length === 2) {
+            startDate = selectedDates[0];
+            endDate = selectedDates[1];
         }
     }
 });
 
-// 为每个范围按钮添加点击事件
+// 為範圍按鈕添加點擊事件
 rangeButtons.forEach(button => {
     button.addEventListener('click', () => {
         const range = button.getAttribute('data-range');
@@ -211,7 +216,7 @@ rangeButtons.forEach(button => {
     });
 });
 
-// 处理自定义日期范围的请求
+// 自定義日期範圍請求
 fetchCustomDataButton.addEventListener('click', () => {
     if (!startDate || !endDate) {
         alert("Please select start and end dates.");
@@ -220,5 +225,5 @@ fetchCustomDataButton.addEventListener('click', () => {
     fetchData('custom', startDate, endDate);
 });
 
-// 初次加载图表
+// 初次加載圖表數據
 fetchData('1d');

@@ -35,6 +35,8 @@ h1, h2, h5 {
     font-weight: bold;
     position: relative;
     overflow: hidden;
+    text-transform: uppercase; /* 按鈕文字大寫風格 */
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn-cyberpunk::before {
@@ -55,7 +57,7 @@ h1, h2, h5 {
 .btn-cyberpunk:hover {
     color: #0a0a0a;
     background-color: #ff00ff;
-    box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+    box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px rgba(255, 0, 255, 0.5);
 }
 
 /* 其他按钮样式 */
@@ -215,18 +217,14 @@ h1, h2, h5 {
     color: #e0e0e0;
     margin-top: 20px;
     text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-.result-container h2 {
-    color: #00ff00;
-    font-size: 2em;
-    margin-bottom: 10px;
-}
-
-.result-item {
-    font-size: 1.8em;
-    margin-bottom: 10px;
-    font-weight: bold;
+.result-container.active {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* 卡片样式 */
@@ -237,13 +235,14 @@ h1, h2, h5 {
     color: #e0e0e0;
     box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
     position: relative;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-/* 表单标题 */
-.register-card h2, .login-card h2 {
-    color: #ff00ff;
-    font-size: 2em;
-    font-weight: bold;
+.register-card.active, .login-card.active {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* 链接样式 */
@@ -264,8 +263,10 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #ff00ff, #00ffff);
+    background: linear-gradient(180deg, #ff00ff, #00ffff, #ff00ff);
     border-radius: 5px;
+    border: 2px solid #1a1a1a;
+    box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
 }
 
 /* 链接样式 */
@@ -275,4 +276,21 @@ a:hover {
 
 .text-info:hover {
     color: #00cccc !important;
+}
+
+/* 響應式樣式 */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.2em;
+    }
+
+    .btn-cyberpunk {
+        font-size: 0.8em;
+        padding: 10px 15px;
+    }
+
+    .register-card, .result-container {
+        padding: 15px;
+        margin: 10px;
+    }
 }
