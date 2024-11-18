@@ -238,24 +238,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        // Initialize Flatpickr for Date Range Input
-        flatpickr("#date-range", {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            maxDate: "today",
-            minDate: "2017-08-14",
-            locale: {
-                rangeSeparator: " to "
-            },
-            altInput: true,
-            altFormat: "F j, Y",
-            onChange: function (selectedDates) {
-                if (selectedDates.length === 2) {
-                    console.log("Start Date:", selectedDates[0]);
-                    console.log("End Date:", selectedDates[1]);
-                }
+    // Initialize Flatpickr for Date Range Input
+    flatpickr("#date-range", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        maxDate: "today",
+        minDate: "2017-08-14",
+        locale: {
+            rangeSeparator: " to "
+        },
+        altInput: true,
+        altFormat: "F j, Y",
+        onChange: function (selectedDates) {
+            if (selectedDates.length === 2) {
+                console.log("Start Date:", selectedDates[0]);
+                console.log("End Date:", selectedDates[1]);
             }
-        });
+        }
     });
 });
