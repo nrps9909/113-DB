@@ -354,10 +354,37 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
         print(f"Date parsing error: {e}")
         return 0, 0, 0, [], []
 
-    if end_date < start_date:
-        print("End date is before start date")
+    # 將結束日期時間設置為當天的23:59:59，確保包含當天的數據
+    end_date = end_date.replace(hour=23, minute=59, second=59)
+
+    # 調整結束日期為今日
+    today = datetime.datetime.now().date()
+    if end_date.date() > today:
+        end_date = datetime.datetime.combine(today, datetime.datetime.min.time())
+    else:
+        end_date = datetime.datetime.combine(end_date.date(), datetime.datetime.min.time())
+
+    # 創建從開始日期到今日的日期列表
+    all_dates = []
+    current_date = start_date.date()
+    while current_date <= today:
+        all_dates.append(current_date)
+        current_date += datetime.timedelta(days=1)
+
+    # 獲取所有日期的歷史價格
+    start_time = int(start_date.timestamp() * 1000)
+    end_time_ms = int(datetime.datetime.combine(today, datetime.datetime.min.time()).timestamp() * 1000)
+    all_data = get_historical_data(symbol, '1d', start_time, end_time_ms)
+    if not all_data:
         return 0, 0, 0, [], []
 
+    date_price_map = {}
+    for item in all_data:
+        date = datetime.datetime.fromtimestamp(item[0] / 1000).date()
+        closing_price = float(item[4])
+        date_price_map[date] = closing_price
+
+    # 設置投資日期集合
     investment_dates = []
     current_date = start_date
 
@@ -383,41 +410,30 @@ def calculate_dca(start_date_str, end_date_str, interval, amount_per_interval):
             print("Invalid interval")
             break
 
-    total_invested = amount_per_interval * len(investment_dates)
+    investment_dates_set = set([date.date() for date in investment_dates])
+
     total_btc = 0.0
     investment_dates_formatted = []
     investment_values = []
 
-    start_time = int(start_date.timestamp() * 1000)
-    end_time_ms = int((end_date + datetime.timedelta(days=1)).timestamp() * 1000) - 1
-
-    # 調用緩存的 get_historical_data 函數
-    all_data = get_historical_data(symbol, '1d', start_time, end_time_ms)
-    if not all_data:
-        return 0, 0, 0, [], []
-
-    date_price_map = {}
-    for item in all_data:
-        date = datetime.datetime.fromtimestamp(item[0] / 1000).date()
-        closing_price = float(item[4])
-        date_price_map[date] = closing_price
-
-    for investment_date in investment_dates:
-        price = date_price_map.get(investment_date.date())
+    for date in all_dates:
+        if date in investment_dates_set:
+            price = date_price_map.get(date)
+            if price:
+                btc_bought = amount_per_interval / price
+                total_btc += btc_bought
+        price = date_price_map.get(date)
         if price:
-            btc_bought = amount_per_interval / price
-            total_btc += btc_bought
             current_value = total_btc * price
-            investment_dates_formatted.append(investment_date.strftime('%Y-%m-%d'))
+            investment_dates_formatted.append(date.strftime('%Y-%m-%d'))
             investment_values.append(round(current_value, 2))
-        else:
-            print(f"No data for date: {investment_date.strftime('%Y-%m-%d')}")
-            investment_dates_formatted.append(investment_date.strftime('%Y-%m-%d'))
-            investment_values.append(round(total_btc * price if price else 0, 2))
+
+    total_invested = amount_per_interval * len(investment_dates)
 
     current_price = get_bitcoin_price()
     if isinstance(current_price, str):
         current_price = 0.0
+
     total_value = total_btc * current_price
     roi_percentage = ((total_value - total_invested) / total_invested) * 100 if total_invested != 0 else 0
 
