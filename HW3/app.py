@@ -118,7 +118,8 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for('index'))
 
-@cache.cached(timeout=60)
+# 將緩存時間從 60 秒縮短為 5 秒
+@cache.cached(timeout=5)
 def get_bitcoin_price():
     """获取实时比特币价格"""
     url = f'{BASE_URL}/api/v3/ticker/price'
@@ -484,3 +485,4 @@ def bitcoin_price_api():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # 使用 Heroku 提供的端口
     app.run(host='0.0.0.0', port=port)
+
