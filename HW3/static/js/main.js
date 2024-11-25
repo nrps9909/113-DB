@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 初次获取价格并设置定时器
         fetchBitcoinPrice();
-        setInterval(fetchBitcoinPrice, 10000); // 每10秒更新价格
+        setInterval(fetchBitcoinPrice, 5000); // 每5秒更新价格
     }
 
     // 初始化 K 线图，仅在相关元素存在时执行

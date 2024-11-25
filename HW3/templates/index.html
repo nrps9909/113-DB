@@ -40,7 +40,9 @@
 
     <div class="container mt-5 cyberpunk-container">
         <h1 class="text-center mb-4">Real-time Bitcoin Price</h1>
-        <div id="price" class="display-4 text-center">${{ bitcoin_price }}</div>
+        <div id="price" class="display-4 text-center">
+            ${{ "%.2f"|format(bitcoin_price) }}
+        </div>
 
         <div class="text-center my-4">
             <button class="btn range-btn" data-range="1d">1 Day</button>
